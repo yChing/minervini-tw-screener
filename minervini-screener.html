@@ -1321,24 +1321,34 @@ function hideResults() {
 
 // ========== Main ==========
 async function analyze() {
-  const stockNo = document.getElementById('stockCode').value.trim();
-  if (!stockNo || !/^\d{4,6}$/.test(stockNo)) {
-    setStatus('請輸入有效的台股代號（4-6 位數字）', 'error');
+  const stockNo = document.getElementById('stockCode').value.trim().toUpperCase();
+  if (!stockNo || !/^\d{4,6}[A-Z]?$/.test(stockNo)) {
+    setStatus('請輸入有效的台股代號（例如：2330、00631L）', 'error');
     return;
   }
 
+  const isETF = /[A-Z]/.test(stockNo) || stockNo.startsWith('00');
   const btn = document.getElementById('btnSearch');
   btn.disabled = true;
   hideResults();
-  setStatus('正在從 FinMind 抓取資料（股價＋營收＋EPS）...', 'loading');
+  setStatus(isETF
+    ? '正在從 FinMind 抓取資料（ETF 模式：股價＋量能）...'
+    : '正在從 FinMind 抓取資料（股價＋營收＋EPS）...', 'loading');
 
   try {
-    // All three API calls in parallel
-    const [priceData, revenueData, finData] = await Promise.all([
-      fetchPriceData(stockNo),
-      fetchRevenue(stockNo),
-      fetchEPS(stockNo)
-    ]);
+    // ETF skips revenue & EPS
+    let priceData, revenueData, finData;
+    if (isETF) {
+      priceData = await fetchPriceData(stockNo);
+      revenueData = [];
+      finData = [];
+    } else {
+      [priceData, revenueData, finData] = await Promise.all([
+        fetchPriceData(stockNo),
+        fetchRevenue(stockNo),
+        fetchEPS(stockNo)
+      ]);
+    }
 
     if (priceData.length < 50) {
       setStatus(`僅取得 ${priceData.length} 筆交易日資料，不足以計算。`, 'error');
@@ -1408,33 +1418,86 @@ async function analyze() {
       required: true, available: true
     });
 
-    const revPass = revYoy !== null && revYoy > 20;
-    conditions.push({
-      name: '月營收年增率 > 20%',
-      desc: `營收成長動能（${revSource}）`,
-      pass: revPass,
-      value: revYoy !== null ? `${revYoy.toFixed(1)}%` : '無資料',
-      required: false, available: revYoy !== null
-    });
+    if (isETF) {
+      // === ETF Mode: Volume Momentum ===
+      const vol5 = priceData.slice(-5).reduce((s, d) => s + d.volume, 0) / 5;
+      const vol20 = priceData.slice(-20).reduce((s, d) => s + d.volume, 0) / 20;
+      const volRatio = vol20 > 0 ? (vol5 / vol20) : 0;
+      const volMomentumPass = volRatio >= 1.2;
+      conditions.push({
+        name: '量能動能（5日/20日均量比）',
+        desc: 'ETF 替代指標：近 5 日均量 ≥ 20 日均量的 1.2 倍，代表資金流入',
+        pass: volMomentumPass,
+        value: `${volRatio.toFixed(2)} 倍${volMomentumPass ? '（資金流入中）' : '（量能不足）'}`,
+        required: false, available: true
+      });
 
-    const epsPass = epsCurrent !== null && epsLastYear !== null && epsCurrent > 0 && epsCurrent > epsLastYear;
-    conditions.push({
-      name: 'EPS 正成長',
-      desc: `當季 EPS > 0 且超越去年同期（${epsSource}）`,
-      pass: epsPass,
-      value: (epsCurrent !== null && epsLastYear !== null)
-        ? `${epsCurrent.toFixed(2)} vs 去年 ${epsLastYear.toFixed(2)}`
-        : (epsCurrent !== null ? `${epsCurrent.toFixed(2)}（缺去年同期）` : '無資料'),
-      required: false, available: epsCurrent !== null
-    });
+      // === ETF Mode: Volatility Contraction ===
+      const returns20 = [];
+      const slice20 = priceData.slice(-21);
+      for (let i = 1; i < slice20.length; i++) {
+        returns20.push((slice20[i].close - slice20[i-1].close) / slice20[i-1].close);
+      }
+      const mean20 = returns20.reduce((a, b) => a + b, 0) / returns20.length;
+      const variance20 = returns20.reduce((s, r) => s + (r - mean20) ** 2, 0) / returns20.length;
+      const volatility20 = Math.sqrt(variance20) * 100;
 
-    const volPass = volToday > 1500;
-    conditions.push({
-      name: '成交量 > 1,500 張',
-      desc: '確保流動性充足',
-      pass: volPass, value: `${volToday.toLocaleString()} 張`,
-      required: true, available: true
-    });
+      const returns60 = [];
+      const slice60 = priceData.slice(-61);
+      for (let i = 1; i < slice60.length; i++) {
+        returns60.push((slice60[i].close - slice60[i-1].close) / slice60[i-1].close);
+      }
+      const mean60 = returns60.reduce((a, b) => a + b, 0) / returns60.length;
+      const variance60 = returns60.reduce((s, r) => s + (r - mean60) ** 2, 0) / returns60.length;
+      const volatility60 = Math.sqrt(variance60) * 100;
+
+      const volContracting = volatility60 > 0 && (volatility20 / volatility60) < 0.8;
+      conditions.push({
+        name: '波動率收斂（VCP 型態）',
+        desc: 'ETF 替代指標：近 20 日波動率 < 60 日波動率的 80%，可能醞釀突破',
+        pass: volContracting,
+        value: `20日: ${volatility20.toFixed(2)}% vs 60日: ${volatility60.toFixed(2)}%（比值 ${(volatility20/volatility60*100).toFixed(0)}%）`,
+        required: false, available: priceData.length >= 61
+      });
+
+      // === ETF Volume (lower threshold for ETF) ===
+      const volPass = volToday > 500;
+      conditions.push({
+        name: '成交量 > 500 張',
+        desc: 'ETF 流動性門檻（低於個股要求）',
+        pass: volPass, value: `${volToday.toLocaleString()} 張`,
+        required: true, available: true
+      });
+    } else {
+      // === Stock Mode: Fundamental ===
+      const revPass = revYoy !== null && revYoy > 20;
+      conditions.push({
+        name: '月營收年增率 > 20%',
+        desc: `營收成長動能（${revSource}）`,
+        pass: revPass,
+        value: revYoy !== null ? `${revYoy.toFixed(1)}%` : '無資料',
+        required: false, available: revYoy !== null
+      });
+
+      const epsPass = epsCurrent !== null && epsLastYear !== null && epsCurrent > 0 && epsCurrent > epsLastYear;
+      conditions.push({
+        name: 'EPS 正成長',
+        desc: `當季 EPS > 0 且超越去年同期（${epsSource}）`,
+        pass: epsPass,
+        value: (epsCurrent !== null && epsLastYear !== null)
+          ? `${epsCurrent.toFixed(2)} vs 去年 ${epsLastYear.toFixed(2)}`
+          : (epsCurrent !== null ? `${epsCurrent.toFixed(2)}（缺去年同期）` : '無資料'),
+        required: false, available: epsCurrent !== null
+      });
+
+      const volPass = volToday > 1500;
+      conditions.push({
+        name: '成交量 > 1,500 張',
+        desc: '確保流動性充足',
+        pass: volPass, value: `${volToday.toLocaleString()} 張`,
+        required: true, available: true
+      });
+    }
 
     // === Score ===
     const techConds = conditions.filter(c => c.required);
@@ -1458,8 +1521,9 @@ async function analyze() {
     document.getElementById('stockChange').innerHTML =
       `<span style="color:${direction === 'up' ? '#ef4444' : direction === 'down' ? '#22c55e' : '#e0e6ed'}">` +
       `${sign}${changeVal.toFixed(2)} (${sign}${changePct.toFixed(2)}%)</span>`;
-    document.getElementById('stockMeta').textContent =
-      `最後交易日：${latest.date} ｜ ${priceData.length} 筆交易日 ｜ 營收：${revSource} ｜ EPS：${epsSource}`;
+    document.getElementById('stockMeta').textContent = isETF
+      ? `最後交易日：${latest.date} ｜ ${priceData.length} 筆交易日 ｜ ETF 模式（量能＋波動率）`
+      : `最後交易日：${latest.date} ｜ ${priceData.length} 筆交易日 ｜ 營收：${revSource} ｜ EPS：${epsSource}`;
     document.getElementById('stockHeader').style.display = 'block';
 
     // === Cost Price ===
@@ -1478,14 +1542,17 @@ async function analyze() {
     document.getElementById('scoreText').style.color = sc;
 
     let label, desc;
-    if (totalScore >= 80) { label = '強力推薦關注'; desc = '符合 Minervini 趨勢模板大部分條件'; }
-    else if (totalScore >= 50) { label = '部分符合'; desc = '有些條件尚未達標，建議持續追蹤'; }
-    else { label = '不符合模板'; desc = '目前不滿足 Minervini 趨勢模板的關鍵條件'; }
+    if (totalScore >= 80) { label = '強力推薦關注'; desc = isETF ? '技術面＋量能指標高度符合趨勢模板' : '符合 Minervini 趨勢模板大部分條件'; }
+    else if (totalScore >= 50) { label = '部分符合'; desc = isETF ? '部分技術面或量能條件尚未達標' : '有些條件尚未達標，建議持續追蹤'; }
+    else { label = '不符合模板'; desc = isETF ? 'ETF 目前趨勢不明確或量能不足' : '目前不滿足 Minervini 趨勢模板的關鍵條件'; }
     document.getElementById('scoreLabel').textContent = label;
     document.getElementById('scoreLabel').style.color = sc;
     document.getElementById('scoreDesc').textContent = desc;
-    if (fundAvail.length === 0) {
+    if (!isETF && fundAvail.length === 0) {
       document.getElementById('scoreDesc').textContent += '（基本面資料未取得，僅計算技術面 60 分）';
+    }
+    if (isETF) {
+      document.getElementById('scoreDesc').textContent += '（ETF 模式：量能動能＋波動率取代基本面）';
     }
     document.getElementById('scoreCard').style.display = 'block';
     document.getElementById('btnAddWatch').style.display = 'block';
@@ -1499,7 +1566,7 @@ async function analyze() {
         <div class="check-item">
           <div class="check-icon ${cls}">${icon}</div>
           <div class="check-content">
-            <div class="check-title">${c.name}${!c.required ? ' <span style="color:#6b7785;font-weight:400;font-size:0.75rem">(基本面)</span>' : ''}</div>
+            <div class="check-title">${c.name}${!c.required ? ` <span style="color:#6b7785;font-weight:400;font-size:0.75rem">(${isETF ? 'ETF 替代指標' : '基本面'})</span>` : ''}</div>
             <div class="check-detail">${c.desc}</div>
           </div>
           <div class="check-value ${cls}">${c.value}</div>
