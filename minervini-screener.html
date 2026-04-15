@@ -1,0 +1,2644 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minervini 趨勢模板選股工具</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+    background: #0f1923;
+    color: #e0e6ed;
+    min-height: 100vh;
+  }
+  .container { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+
+  h1 {
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #f0b90b, #f8d12f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    color: #6b7785;
+    font-size: 0.85rem;
+    margin-bottom: 28px;
+  }
+
+  /* Input Section */
+  .input-section {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+  }
+  .input-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .input-group { flex: 1; min-width: 200px; }
+  .input-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #8899aa;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .input-group input {
+    width: 100%;
+    padding: 10px 14px;
+    background: #0f1923;
+    border: 1px solid #2a3a4a;
+    border-radius: 8px;
+    color: #e0e6ed;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-group input:focus { border-color: #f0b90b; }
+  .input-group input::placeholder { color: #4a5568; }
+
+  .btn-search {
+    padding: 10px 28px;
+    background: linear-gradient(135deg, #f0b90b, #e6a800);
+    color: #0f1923;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .btn-search:hover { opacity: 0.9; }
+  .btn-search:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Token Section */
+  .token-section {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+  }
+  .token-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .token-header h3 {
+    font-size: 0.8rem;
+    color: #6b7785;
+    font-weight: 400;
+  }
+  .token-toggle {
+    font-size: 0.72rem;
+    color: #6b7785;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .token-body { margin-top: 10px; display: none; }
+  .token-body.open { display: block; }
+  .token-body input {
+    width: 100%;
+    padding: 8px 12px;
+    background: #0f1923;
+    border: 1px solid #2a3a4a;
+    border-radius: 6px;
+    color: #e0e6ed;
+    font-size: 0.85rem;
+    outline: none;
+  }
+  .token-body input:focus { border-color: #f0b90b; }
+  .token-hint {
+    font-size: 0.72rem;
+    color: #4a5568;
+    margin-top: 6px;
+  }
+
+  /* Fundamental Override Section */
+  .fundamental-section {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+  }
+  .fund-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .fund-header h3 {
+    font-size: 0.8rem;
+    color: #6b7785;
+    font-weight: 400;
+  }
+  .fund-toggle {
+    font-size: 0.72rem;
+    color: #6b7785;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .fund-body { margin-top: 14px; display: none; }
+  .fund-body.open { display: block; }
+  .fund-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .fund-row .input-group { min-width: 150px; }
+
+  /* Status */
+  .status {
+    text-align: center;
+    padding: 16px;
+    color: #6b7785;
+    font-size: 0.9rem;
+  }
+  .status.loading { color: #f0b90b; }
+  .status.error { color: #ef4444; }
+
+  /* Stock Header */
+  .stock-header {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+    display: none;
+  }
+  .stock-name { font-size: 1.3rem; font-weight: 700; }
+  .stock-price { font-size: 2rem; font-weight: 700; margin: 8px 0 4px; }
+  .stock-price.up { color: #ef4444; }
+  .stock-price.down { color: #22c55e; }
+  .stock-price.flat { color: #e0e6ed; }
+  .stock-change { font-size: 0.9rem; }
+  .stock-meta { font-size: 0.8rem; color: #6b7785; margin-top: 8px; }
+
+  /* Score Card */
+  .score-card {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+    text-align: center;
+    display: none;
+  }
+  .score-ring {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 12px;
+    position: relative;
+  }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring .score-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: 800;
+  }
+  .score-label { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+  .score-desc { font-size: 0.8rem; color: #6b7785; }
+
+  /* Checklist */
+  .checklist {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+    display: none;
+  }
+  .checklist h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #8899aa;
+  }
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid #1f2f3f;
+    gap: 12px;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .check-icon.pass { background: #064e3b; color: #34d399; }
+  .check-icon.fail { background: #4c0519; color: #f87171; }
+  .check-icon.na { background: #2a3a4a; color: #6b7785; }
+  .check-content { flex: 1; }
+  .check-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 3px; }
+  .check-detail { font-size: 0.78rem; color: #6b7785; }
+  .check-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .check-value.pass { color: #34d399; }
+  .check-value.fail { color: #f87171; }
+  .check-value.na { color: #6b7785; }
+
+  /* MA Info */
+  .ma-info {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+    display: none;
+  }
+  .ma-info h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: #8899aa;
+  }
+  .ma-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .ma-item {
+    background: #0f1923;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .ma-label { font-size: 0.75rem; color: #6b7785; margin-bottom: 4px; }
+  .ma-val { font-size: 1.1rem; font-weight: 700; }
+
+  /* Fundamental Detail Card */
+  .fund-detail {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+    display: none;
+  }
+  .fund-detail h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: #8899aa;
+  }
+  .fund-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .fund-detail-item {
+    background: #0f1923;
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .fund-detail-label { font-size: 0.72rem; color: #6b7785; margin-bottom: 4px; }
+  .fund-detail-val { font-size: 1rem; font-weight: 700; }
+  .fund-detail-sub { font-size: 0.72rem; color: #6b7785; margin-top: 2px; }
+
+  /* Chart Section */
+  .chart-section {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 20px 24px 16px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+  }
+  .chart-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #8899aa;
+    margin-bottom: 8px;
+  }
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 0.72rem;
+  }
+  .chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #6b7785;
+  }
+  .chart-legend-dot {
+    width: 10px;
+    height: 3px;
+    border-radius: 1px;
+  }
+
+  /* Trading Plan */
+  .trade-plan {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+    display: none;
+  }
+  .trade-plan h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: #f0b90b;
+  }
+  .trade-plan-sub {
+    font-size: 0.78rem;
+    color: #6b7785;
+    margin-bottom: 18px;
+  }
+  .trade-section {
+    margin-bottom: 18px;
+  }
+  .trade-section:last-child { margin-bottom: 0; }
+  .trade-section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #8899aa;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #1f2f3f;
+  }
+  .trade-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    gap: 10px;
+    font-size: 0.84rem;
+  }
+  .trade-badge {
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: center;
+  }
+  .trade-badge.entry { background: #0c4a6e; color: #38bdf8; }
+  .trade-badge.stop { background: #4c0519; color: #f87171; }
+  .trade-badge.profit { background: #064e3b; color: #34d399; }
+  .trade-badge.trail { background: #422006; color: #fbbf24; }
+  .trade-badge.warn { background: #431407; color: #fb923c; }
+  .trade-price {
+    font-weight: 700;
+    min-width: 80px;
+  }
+  .trade-desc {
+    color: #6b7785;
+    font-size: 0.78rem;
+    flex: 1;
+  }
+  .trade-note {
+    font-size: 0.75rem;
+    color: #4a5568;
+    line-height: 1.6;
+    padding: 12px 14px;
+    background: #0f1923;
+    border-radius: 8px;
+    margin-top: 14px;
+  }
+  .trade-note strong { color: #6b7785; }
+  .plan-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .plan-tab {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid #2a3a4a;
+    background: transparent;
+    color: #6b7785;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .plan-tab.active {
+    background: #f0b90b;
+    color: #0f1923;
+    border-color: #f0b90b;
+    font-weight: 700;
+  }
+  .plan-content { display: none; }
+  .plan-content.active { display: block; }
+  .timing-info {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+  }
+  .timing-info h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #8899aa;
+  }
+  .timing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 500px) { .timing-grid { grid-template-columns: 1fr; } }
+  .timing-card {
+    background: #0f1923;
+    border-radius: 8px;
+    padding: 14px;
+    border-left: 3px solid #2a3a4a;
+  }
+  .timing-card.recommended { border-left-color: #34d399; }
+  .timing-card.optional { border-left-color: #f0b90b; }
+  .timing-card-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .timing-card-body {
+    font-size: 0.78rem;
+    color: #6b7785;
+    line-height: 1.6;
+  }
+
+  /* Philosophy Section */
+  .philosophy {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+  }
+  .philosophy h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #f0b90b;
+  }
+  .philosophy .phil-intro {
+    font-size: 0.82rem;
+    color: #8899aa;
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .phil-pillar {
+    background: #0f1923;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 14px;
+    border-left: 3px solid #2a3a4a;
+    transition: border-color 0.2s;
+  }
+  .phil-pillar:hover { border-left-color: #f0b90b; }
+  .phil-pillar:last-child { margin-bottom: 0; }
+  .phil-pillar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .phil-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f0b90b, #e6a800);
+    color: #0f1923;
+    font-size: 0.78rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .phil-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #e0e6ed;
+  }
+  .phil-title span {
+    font-weight: 400;
+    font-size: 0.78rem;
+    color: #6b7785;
+    margin-left: 6px;
+  }
+  .phil-body {
+    font-size: 0.82rem;
+    color: #8899aa;
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .phil-criteria {
+    background: #141e2a;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    color: #6b7785;
+    line-height: 1.6;
+  }
+  .phil-criteria code {
+    background: #1a2634;
+    color: #f0b90b;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 0.76rem;
+  }
+  .phil-criteria strong {
+    color: #8899aa;
+    font-weight: 600;
+  }
+  .phil-divider {
+    height: 1px;
+    background: #1f2f3f;
+    margin: 20px 0;
+  }
+  .phil-summary {
+    font-size: 0.82rem;
+    color: #8899aa;
+    line-height: 1.7;
+    padding: 14px 18px;
+    background: #0f1923;
+    border-radius: 10px;
+    border: 1px dashed #2a3a4a;
+  }
+  .phil-summary strong { color: #f0b90b; font-weight: 600; }
+
+  /* Watchlist Section */
+  .watchlist-section {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+    display: none;
+  }
+  .watchlist-section.show { display: block; }
+  .watchlist-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .watchlist-header h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e0e6ed;
+    margin: 0;
+  }
+  .watchlist-toggle {
+    background: none;
+    border: none;
+    color: #6b7785;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    transition: color 0.2s;
+  }
+  .watchlist-toggle:hover { color: #8899aa; }
+  .watchlist-body { display: none; }
+  .watchlist-body.open { display: block; }
+  .watchlist-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+  }
+  .watchlist-table th {
+    text-align: left;
+    padding: 10px;
+    border-bottom: 1px solid #2a3a4a;
+    color: #8899aa;
+    font-weight: 600;
+  }
+  .watchlist-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #1f2f3f;
+  }
+  .watchlist-table tr:last-child td { border-bottom: none; }
+  .watchlist-code {
+    font-weight: 700;
+    color: #f0b90b;
+  }
+  .watchlist-status {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .watchlist-status.gain { background: #064e3b; color: #34d399; }
+  .watchlist-status.loss { background: #4c0519; color: #f87171; }
+  .watchlist-status.neutral { background: #1f2f3f; color: #8899aa; }
+  .watchlist-empty {
+    text-align: center;
+    color: #6b7785;
+    padding: 20px;
+    font-size: 0.84rem;
+  }
+  .watchlist-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .btn-refresh, .btn-remove {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-refresh {
+    background: #0c4a6e;
+    color: #38bdf8;
+    flex: 1;
+  }
+  .btn-refresh:hover { background: #0e5a8a; }
+  .watchlist-data-actions {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+  .btn-data {
+    padding: 6px 14px; border: 1px solid #334155; border-radius: 6px;
+    background: #1e293b; color: #94a3b8; font-size: 0.8rem; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-data:hover { background: #334155; color: #e2e8f0; }
+  .btn-danger { border-color: #7f1d1d; color: #f87171; }
+  .btn-danger:hover { background: #7f1d1d; color: #fecaca; }
+  .btn-remove {
+    background: #4c0519;
+    color: #f87171;
+    padding: 4px 10px;
+  }
+  .btn-remove:hover { background: #681030; }
+  .btn-add-watch {
+    padding: 8px 16px;
+    background: #0c4a6e;
+    color: #38bdf8;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s;
+  }
+  .btn-add-watch:hover { background: #0e5a8a; }
+
+  /* Turning Point Detection */
+  .turning-point {
+    background: #1a2634;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    border: 1px solid #2a3a4a;
+    display: none;
+  }
+  .turning-point.show { display: block; }
+  .turning-point h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e0e6ed;
+    margin-bottom: 16px;
+  }
+  .turning-point-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 600px) { .turning-point-grid { grid-template-columns: 1fr; } }
+  .turning-point-item {
+    background: #0f1923;
+    border-radius: 8px;
+    padding: 14px;
+    border-left: 3px solid #2a3a4a;
+  }
+  .turning-point-item.bullish { border-left-color: #34d399; }
+  .turning-point-item.bearish { border-left-color: #f87171; }
+  .turning-point-item.caution { border-left-color: #fbbf24; }
+  .turning-point-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .turning-point-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .turning-point-desc {
+    font-size: 0.75rem;
+    color: #6b7785;
+    line-height: 1.5;
+  }
+  .signal-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  .signal-badge.bullish { background: #064e3b; color: #34d399; }
+  .signal-badge.bearish { background: #4c0519; color: #f87171; }
+  .signal-badge.caution { background: #422006; color: #fbbf24; }
+
+  /* Note */
+  .note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #4a5568;
+    margin-top: 20px;
+    line-height: 1.6;
+  }
+  .note a { color: #f0b90b; text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .input-row { flex-direction: column; }
+    .btn-search { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Minervini 趨勢模板選股工具</h1>
+  <p class="subtitle">Mark Minervini Stage 2 Trend Template — 台股版</p>
+
+  <!-- Input -->
+  <div class="input-section">
+    <div class="input-row">
+      <div class="input-group">
+        <label>台股代號</label>
+        <input type="text" id="stockCode" placeholder="例如：2330" maxlength="6"
+               onkeydown="if(event.key==='Enter') analyze()">
+      </div>
+      <div class="input-group">
+        <label>我的持倉成本（選填）</label>
+        <input type="number" id="costPrice" placeholder="留空=用收盤價" step="0.01"
+               onkeydown="if(event.key==='Enter') analyze()">
+      </div>
+      <button class="btn-search" id="btnSearch" onclick="analyze()">開始分析</button>
+    </div>
+  </div>
+
+  <!-- Watchlist -->
+  <div class="watchlist-section" id="watchlistSection">
+    <div class="watchlist-header" onclick="toggleWatchlist()">
+      <h3>觀察名單</h3>
+      <button class="watchlist-toggle" id="watchlistToggle">展開 ▼</button>
+    </div>
+    <div class="watchlist-body" id="watchlistBody">
+      <table class="watchlist-table" id="watchlistTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>股票代碼</th>
+            <th>加入日期</th>
+            <th>進場價</th>
+            <th>目前價格</th>
+            <th>漲跌</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="watchlistTbody"></tbody>
+      </table>
+      <div class="watchlist-empty" id="watchlistEmpty">
+        <p>觀察名單為空。分析股票後點擊「加入觀察」來追蹤。</p>
+      </div>
+      <div class="watchlist-actions" id="watchlistActions" style="display:none;">
+        <button class="btn-refresh" onclick="refreshWatchlist()">一鍵更新價格</button>
+        <div class="watchlist-data-actions">
+          <button class="btn-data" onclick="exportWatchlist()">匯出 JSON</button>
+          <button class="btn-data" onclick="document.getElementById('importFile').click()">匯入 JSON</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importWatchlist(event)">
+          <button class="btn-data btn-danger" onclick="resetWatchlist()">重置名單</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status" id="status"></div>
+
+  <!-- Stock Header -->
+  <div class="stock-header" id="stockHeader">
+    <div class="stock-name" id="stockName"></div>
+    <div class="stock-price" id="stockPrice"></div>
+    <div class="stock-change" id="stockChange"></div>
+    <div class="stock-meta" id="stockMeta"></div>
+  </div>
+
+  <!-- K-Line Chart -->
+  <div class="chart-section" id="chartSection" style="display:none;">
+    <h3 class="chart-title">K 線圖與均線</h3>
+    <div class="chart-legend" id="chartLegend"></div>
+    <div id="chartContainer" style="width:100%; height:400px; border-radius:8px; overflow:hidden;"></div>
+    <div id="volumeContainer" style="width:100%; height:100px; border-radius:0 0 8px 8px; overflow:hidden; margin-top:-2px;"></div>
+  </div>
+
+  <!-- Score -->
+  <div class="score-card" id="scoreCard">
+    <div class="score-ring">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#1f2f3f" stroke-width="8"/>
+        <circle id="scoreArc" cx="60" cy="60" r="52" fill="none" stroke="#f0b90b"
+                stroke-width="8" stroke-linecap="round" stroke-dasharray="0 327" />
+      </svg>
+      <div class="score-text" id="scoreText">0</div>
+    </div>
+    <div class="score-label" id="scoreLabel"></div>
+    <div class="score-desc" id="scoreDesc"></div>
+    <button class="btn-add-watch" id="btnAddWatch" onclick="addToWatchlist()" style="display:none;">加入觀察</button>
+  </div>
+
+  <!-- Checklist -->
+  <div class="checklist" id="checklist">
+    <h3>Minervini 趨勢模板檢查項目</h3>
+    <div id="checkItems"></div>
+  </div>
+
+  <!-- Turning Point Detection -->
+  <div class="turning-point" id="turningPoint">
+    <h3>轉折點偵測</h3>
+    <div class="turning-point-grid" id="turningPointGrid"></div>
+  </div>
+
+  <!-- MA Info -->
+  <div class="ma-info" id="maInfo">
+    <h3>均線與價格數據</h3>
+    <div class="ma-grid" id="maGrid"></div>
+  </div>
+
+  <!-- Fundamental Detail -->
+  <div class="fund-detail" id="fundDetail">
+    <h3>基本面數據（FinMind）</h3>
+    <div class="fund-detail-grid" id="fundDetailGrid"></div>
+  </div>
+
+  <!-- Trading Plan -->
+  <div class="trade-plan" id="tradePlan">
+    <h3>做多交易計畫</h3>
+    <div class="trade-plan-sub">根據 Minervini 方法論自動計算，僅供參考，不構成投資建議</div>
+
+    <div class="plan-tabs">
+      <button class="plan-tab active" onclick="switchPlan('conservative')">穩健型（停損 5%）</button>
+      <button class="plan-tab" onclick="switchPlan('aggressive')">積極型（停損 8%）</button>
+    </div>
+
+    <div class="plan-content active" id="plan-conservative"></div>
+    <div class="plan-content" id="plan-aggressive"></div>
+
+    <div class="trade-note" id="tradeNote"></div>
+  </div>
+
+  <!-- Timing Info -->
+  <div class="timing-info">
+    <h3>什麼時候該跑這個工具？</h3>
+    <div class="timing-grid">
+      <div class="timing-card recommended">
+        <div class="timing-card-title" style="color:#34d399">盤後分析（推薦）</div>
+        <div class="timing-card-body">
+          每天收盤後（13:30 之後）跑一次即可。Minervini 的趨勢模板基於<strong style="color:#e0e6ed">日收盤價</strong>計算均線和 52 週高低點，盤中價格波動不影響判斷。FinMind 資料約在 17:30 更新當日收盤數據。
+          <br><br>
+          <strong style="color:#e0e6ed">建議流程：</strong>每日 18:00 後執行 → 篩出候選股 → 觀察 K 線確認 VCP 型態 → 隔日開盤決定是否進場。
+        </div>
+      </div>
+      <div class="timing-card optional">
+        <div class="timing-card-title" style="color:#fbbf24">盤中監控（可選）</div>
+        <div class="timing-card-body">
+          如果你已經持有部位，盤中可以用來監控停損是否觸發（對照下方的交易計畫價格）。但盤中資料尚未更新到 FinMind，所以顯示的是<strong style="color:#e0e6ed">前一日收盤數據</strong>。
+          <br><br>
+          <strong style="color:#e0e6ed">注意：</strong>不建議盤中頻繁查看做進出場決策，Minervini 的方法是「日線級別」的策略。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Philosophy Section -->
+  <div class="philosophy">
+    <h2>Minervini 投資哲學：為什麼這樣分析？</h2>
+    <p class="phil-intro">
+      馬克·米奈爾維尼（Mark Minervini）是 1997 年美國投資大賽冠軍，年化報酬率高達 220%。
+      他的核心理念是：<strong style="color:#e0e6ed">只買處於「第二階段上升趨勢」的強勢股</strong>，
+      搭配基本面爆發性成長，在風險最低的時機點進場。以下是本工具每個檢查條件背後的邏輯。
+    </p>
+
+    <!-- Pillar 1 -->
+    <div class="phil-pillar">
+      <div class="phil-pillar-header">
+        <div class="phil-num">1</div>
+        <div class="phil-title">第二階段多頭排列 <span>Stage 2 Uptrend</span></div>
+      </div>
+      <div class="phil-body">
+        Minervini 把股票的生命週期分成四個階段：底部盤整（Stage 1）→ 上升趨勢（Stage 2）→ 頂部派發（Stage 3）→ 下跌趨勢（Stage 4）。
+        他只在 Stage 2 買入，因為這是機構資金持續流入、股價加速上漲的階段。均線多頭排列是確認 Stage 2 最可靠的方法。
+      </div>
+      <div class="phil-criteria">
+        <strong>本工具檢查：</strong>收盤價 <code>&gt;</code> 50日均線 <code>&gt;</code> 150日均線 <code>&gt;</code> 200日均線<br>
+        <strong>為什麼：</strong>短天期均線在長天期之上，代表短中長期買方力道一致向上，趨勢確立。如果順序錯亂，代表趨勢混亂或已進入下跌階段。
+      </div>
+    </div>
+
+    <!-- Pillar 2 -->
+    <div class="phil-pillar">
+      <div class="phil-pillar-header">
+        <div class="phil-num">2</div>
+        <div class="phil-title">價格位階確認 <span>52-Week Position</span></div>
+      </div>
+      <div class="phil-body">
+        Minervini 要求股票必須「遠離底部、靠近高點」。很多人直覺認為跌深的股票比較便宜，但他的研究顯示：
+        真正的大飆股在起漲前，股價通常已經比 52 週低點高出至少 30%，且離 52 週高點不遠。這代表股票已經脫離弱勢區，機構正在積極佈局。
+      </div>
+      <div class="phil-criteria">
+        <strong>條件 A：</strong>股價 <code>&gt;</code> 52 週最低點 × 1.30（高於低點 30% 以上）<br>
+        <strong>為什麼：</strong>排除仍在底部掙扎的弱勢股，確認已有買盤介入推升價格<br><br>
+        <strong>條件 B：</strong>股價 <code>&gt;</code> 52 週最高點 × 0.75（距高點在 25% 以內）<br>
+        <strong>為什麼：</strong>靠近高點代表上方套牢賣壓已被消化，一旦突破將進入全新空間。距高點太遠則代表股票可能已轉弱。
+      </div>
+    </div>
+
+    <!-- Pillar 3 -->
+    <div class="phil-pillar">
+      <div class="phil-pillar-header">
+        <div class="phil-num">3</div>
+        <div class="phil-title">超級成長動能 <span>Superperformance Fundamentals</span></div>
+      </div>
+      <div class="phil-body">
+        趨勢只是表象，背後推動股價的是「基本面的爆發性成長」。Minervini 尋找的是營收和獲利出現跳躍式成長的企業——
+        這類公司往往掌握了新產品、新市場、或產業轉型的契機，讓機構法人願意持續加碼。
+      </div>
+      <div class="phil-criteria">
+        <strong>條件 A：</strong>月營收年增率 <code>&gt; 20%</code><br>
+        <strong>為什麼：</strong>營收是最領先的財務指標，年增 20% 以上代表公司正在快速擴張，不只是景氣循環<br><br>
+        <strong>條件 B：</strong>當季 EPS <code>&gt; 0</code> 且 <code>&gt;</code> 去年同期 EPS<br>
+        <strong>為什麼：</strong>確認營收成長有轉化為實質獲利，而非只是「賠錢搶市占」。超越去年同期排除了季節性因素。
+      </div>
+    </div>
+
+    <!-- Pillar 4 -->
+    <div class="phil-pillar">
+      <div class="phil-pillar-header">
+        <div class="phil-num">4</div>
+        <div class="phil-title">流動性門檻 <span>Liquidity Filter</span></div>
+      </div>
+      <div class="phil-body">
+        再好的股票如果沒有足夠的成交量，進出場都會有困難，滑價成本會吃掉利潤。
+        Minervini 會過濾掉成交量過低的標的，確保能順利執行交易。
+      </div>
+      <div class="phil-criteria">
+        <strong>本工具檢查：</strong>當日成交量 <code>&gt; 1,500 張</code>（約 150 萬股）<br>
+        <strong>為什麼：</strong>確保有足夠的市場參與者，能以合理的價差進出。冷門股即使符合其他條件也不適合短中期交易。
+      </div>
+    </div>
+
+    <div class="phil-divider"></div>
+
+    <!-- VCP -->
+    <div class="phil-pillar" style="border-left-color: #f0b90b;">
+      <div class="phil-pillar-header">
+        <div class="phil-num" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff;">!</div>
+        <div class="phil-title">本工具未涵蓋的關鍵：VCP 型態 <span>Volatility Contraction Pattern</span></div>
+      </div>
+      <div class="phil-body">
+        Minervini 最著名的進場技巧是「波動率收縮型態」（VCP）——當股票在上升趨勢中進入橫盤整理，
+        且每次回檔的幅度越來越小、成交量持續萎縮時，代表賣壓已經枯竭，即將突破。
+        <strong style="color:#e0e6ed">這個型態需要人眼判讀 K 線圖</strong>，無法完全量化，因此本工具只負責前置篩選。
+        通過本工具的股票，你需要自己看 K 線圖確認是否出現 VCP 收斂形態，再決定進場時機。
+      </div>
+      <div class="phil-criteria">
+        <strong>Minervini 的完整流程：</strong><br>
+        ① 用趨勢模板篩選（本工具做的事）→ ② 觀察 VCP 型態（你自己看圖）→ ③ 突破時進場 → ④ 停損設在買進價的 5%-8% 以下
+      </div>
+    </div>
+
+    <div class="phil-divider"></div>
+
+    <div class="phil-summary">
+      <strong>總結：</strong>這套方法的核心邏輯是——
+      不要試圖「抄底」，而是等股票用趨勢和基本面「證明自己」之後再上車。
+      Minervini 認為，付出稍高的價格買入一檔已經證明實力的股票，遠比貪便宜買入一檔「看起來跌深」的股票安全得多。
+      本工具幫你快速篩出符合條件的候選標的，但最終的進場決策仍需要你結合 VCP 型態判讀和嚴格的停損紀律。
+    </div>
+
+    <div class="phil-divider"></div>
+
+    <!-- Framework Usage Guide -->
+    <div class="phil-pillar" style="border-left-color: #3b82f6;">
+      <div class="phil-pillar-header">
+        <div class="phil-num" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;">?</div>
+        <div class="phil-title">這個工具適合什麼情境？ <span>Framework Limitations</span></div>
+      </div>
+      <div class="phil-body">
+        這是一套<strong style="color:#e0e6ed">中期波段策略</strong>（持股數週到數月），基於日線收盤價計算，不是當沖或短線工具。
+      </div>
+      <div class="phil-criteria">
+        <strong>適合的情境：</strong><br>
+        - 每天盤後花 5 分鐘檢視持股是否仍符合趨勢模板<br>
+        - 尋找新的做多候選標的（符合 Stage 2 + 基本面成長）<br>
+        - 已有持倉，需要客觀的出場紀律（輸入成本價看建議）<br>
+        - 學習 Minervini 的選股邏輯和風險管理框架<br><br>
+
+        <strong>不適合的情境：</strong><br>
+        - 想抓盤中的即時進出場點（本工具用的是日收盤資料）<br>
+        - 想做當沖或隔日沖（這套方法是中期波段策略）<br>
+        - 期待 100% 勝率（Minervini 自己的勝率也只有約 50%，靠風報比獲利）<br><br>
+
+        <strong>關於跳空風險：</strong><br>
+        開盤跳空漲跌是這套方法的已知限制。Minervini 的應對方式：<br>
+        - <strong>向下跳空穿過停損</strong> → 以開盤價認賠出場，絕不凹單。所以單筆風險只佔總資金 1-2%，即使被多吃也不傷筋動骨。<br>
+        - <strong>向上跳空</strong> → 不追高進場，等回測再考慮。已持有則是好事，繼續依計畫管理。<br>
+        - <strong>降低衝擊</strong> → 用穩健型（5% 停損）、縮小單筆部位、分散持股（同時最多 4-6 檔）。<br><br>
+
+        <strong>建議使用流程：</strong><br>
+        ① 每日 18:00 後開啟工具 → ② 輸入股票代號分析 → ③ 確認趨勢模板仍成立 → ④ 對照 K 線圖觀察 VCP 型態 → ⑤ 依交易計畫管理部位
+      </div>
+    </div>
+  </div>
+
+  <!-- FinMind Token (optional) -->
+  <div class="token-section">
+    <div class="token-header" onclick="toggleToken()">
+      <h3>FinMind Token（選填，可提高 API 額度）</h3>
+      <button class="token-toggle" id="tokenToggleBtn">展開 ▼</button>
+    </div>
+    <div class="token-body" id="tokenBody">
+      <input type="text" id="finmindToken" placeholder="貼上你的 FinMind API token">
+      <div class="token-hint">免費註冊 <a href="https://finmindtrade.com/" target="_blank" style="color:#f0b90b">finmindtrade.com</a> 可取得 token，額度從 300→600 次/小時。不填也能用。</div>
+    </div>
+  </div>
+
+  <!-- Fundamental Override (collapsed) -->
+  <div class="fundamental-section">
+    <div class="fund-header" onclick="toggleFund()">
+      <h3>手動覆蓋基本面資料（自動抓取失敗時使用）</h3>
+      <button class="fund-toggle" id="fundToggleBtn">展開 ▼</button>
+    </div>
+    <div class="fund-body" id="fundBody">
+      <div class="fund-row">
+        <div class="input-group">
+          <label>月營收年增率 (%)</label>
+          <input type="number" id="revYoy" placeholder="留空=自動" step="0.1">
+        </div>
+        <div class="input-group">
+          <label>當季 EPS (元)</label>
+          <input type="number" id="epsCurrent" placeholder="留空=自動" step="0.01">
+        </div>
+        <div class="input-group">
+          <label>去年同期 EPS (元)</label>
+          <input type="number" id="epsLastYear" placeholder="留空=自動" step="0.01">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    所有資料來源：<a href="https://finmindtrade.com/" target="_blank">FinMind 開源金融資料</a>（股價 + 月營收 + 財報 EPS）<br>
+    免費版限制 300 次/小時，註冊可提升至 600 次/小時<br>
+    本工具僅供學習研究，不構成投資建議
+  </div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const FINMIND_API = 'https://api.finmindtrade.com/api/v4/data';
+
+// CORS proxies - try multiple in order in case one is down
+const CORS_PROXIES = [
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => url  // direct as last resort (works if served from http server)
+];
+
+let workingProxyIndex = 0; // remember which proxy works
+
+function getToken() {
+  return (document.getElementById('finmindToken').value || '').trim();
+}
+
+function buildURL(dataset, stockNo, startDate, endDate) {
+  let url = `${FINMIND_API}?dataset=${dataset}&data_id=${stockNo}&start_date=${startDate}`;
+  if (endDate) url += `&end_date=${endDate}`;
+  const token = getToken();
+  if (token) url += `&token=${token}`;
+  return url;
+}
+
+// Fetch with CORS proxy fallback
+async function fetchWithProxy(url) {
+  // Try from the last known working proxy first
+  for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
+    const idx = (workingProxyIndex + attempt) % CORS_PROXIES.length;
+    const proxyUrl = CORS_PROXIES[idx](url);
+    try {
+      const resp = await fetch(proxyUrl);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = await resp.json();
+      workingProxyIndex = idx; // remember this one works
+      return json;
+    } catch (e) {
+      console.warn(`Proxy ${idx} failed:`, e.message);
+      if (attempt === CORS_PROXIES.length - 1) throw e;
+    }
+  }
+}
+
+// ========== FinMind: Stock Price ==========
+async function fetchPriceData(stockNo) {
+  const now = new Date();
+  const startDate = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate());
+  const start = startDate.toISOString().slice(0, 10);
+  const end = now.toISOString().slice(0, 10);
+
+  const url = buildURL('TaiwanStockPrice', stockNo, start, end);
+  const json = await fetchWithProxy(url);
+
+  if (json.status !== 200 || !json.data || json.data.length === 0) {
+    throw new Error(json.msg || '無法取得股價資料，請確認股票代號是否正確');
+  }
+
+  return json.data.map(d => ({
+    date: d.date,
+    open: d.open,
+    high: d.max,
+    low: d.min,
+    close: d.close,
+    volume: d.Trading_Volume,
+    spread: d.spread
+  }));
+}
+
+// ========== FinMind: Monthly Revenue ==========
+async function fetchRevenue(stockNo) {
+  const now = new Date();
+  const start = new Date(now.getFullYear() - 2, now.getMonth(), 1).toISOString().slice(0, 10);
+  const url = buildURL('TaiwanStockMonthRevenue', stockNo, start);
+
+  try {
+    const json = await fetchWithProxy(url);
+    if (json.status !== 200 || !json.data || json.data.length === 0) return null;
+    return json.data;
+  } catch (e) {
+    console.warn('Revenue fetch failed:', e);
+    return null;
+  }
+}
+
+// ========== FinMind: Financial Statements (EPS) ==========
+async function fetchEPS(stockNo) {
+  const now = new Date();
+  const start = new Date(now.getFullYear() - 2, 0, 1).toISOString().slice(0, 10);
+  const url = buildURL('TaiwanStockFinancialStatements', stockNo, start);
+
+  try {
+    const json = await fetchWithProxy(url);
+    if (json.status !== 200 || !json.data || json.data.length === 0) return null;
+    return json.data;
+  } catch (e) {
+    console.warn('EPS fetch failed:', e);
+    return null;
+  }
+}
+
+// ========== Data Processing ==========
+function calcRevenueYoY(revenueData) {
+  if (!revenueData || revenueData.length < 2) return null;
+
+  const sorted = [...revenueData].sort((a, b) => b.date.localeCompare(a.date));
+  const latest = sorted[0];
+  const latestYear = latest.revenue_year;
+  const latestMonth = latest.revenue_month;
+
+  const lastYear = sorted.find(d =>
+    d.revenue_year === latestYear - 1 && d.revenue_month === latestMonth
+  );
+
+  if (!lastYear || lastYear.revenue === 0) return null;
+
+  return {
+    yoy: ((latest.revenue - lastYear.revenue) / lastYear.revenue) * 100,
+    latestRevenue: latest.revenue,
+    lastYearRevenue: lastYear.revenue,
+    month: `${latestYear}/${latestMonth}`,
+    lastYearMonth: `${latestYear - 1}/${latestMonth}`
+  };
+}
+
+function extractEPS(finData) {
+  if (!finData) return null;
+
+  const epsEntries = finData.filter(d =>
+    d.type === 'EPS' || d.origin_name === '基本每股盈餘（元）'
+  );
+  if (epsEntries.length === 0) return null;
+
+  const sorted = [...epsEntries].sort((a, b) => b.date.localeCompare(a.date));
+  const latest = sorted[0];
+  const latestDate = new Date(latest.date);
+  const targetYear = latestDate.getFullYear() - 1;
+  const targetMonth = latestDate.getMonth();
+
+  const lastYearEntry = sorted.find(d => {
+    const dd = new Date(d.date);
+    return dd.getFullYear() === targetYear && dd.getMonth() === targetMonth;
+  });
+
+  return {
+    current: latest.value,
+    currentDate: latest.date,
+    lastYear: lastYearEntry ? lastYearEntry.value : null,
+    lastYearDate: lastYearEntry ? lastYearEntry.date : null
+  };
+}
+
+function calcMA(data, period) {
+  if (data.length < period) return null;
+  const slice = data.slice(-period);
+  return slice.reduce((s, d) => s + d.close, 0) / period;
+}
+
+// ========== UI ==========
+function toggleToken() {
+  const body = document.getElementById('tokenBody');
+  const btn = document.getElementById('tokenToggleBtn');
+  body.classList.toggle('open');
+  btn.textContent = body.classList.contains('open') ? '收合 ▲' : '展開 ▼';
+}
+
+function toggleFund() {
+  const body = document.getElementById('fundBody');
+  const btn = document.getElementById('fundToggleBtn');
+  body.classList.toggle('open');
+  btn.textContent = body.classList.contains('open') ? '收合 ▲' : '展開 ▼';
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (type ? ` ${type}` : '');
+}
+
+function hideResults() {
+  ['stockHeader', 'chartSection', 'scoreCard', 'checklist', 'turningPoint', 'maInfo', 'fundDetail', 'tradePlan'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+}
+
+// ========== Main ==========
+async function analyze() {
+  const stockNo = document.getElementById('stockCode').value.trim();
+  if (!stockNo || !/^\d{4,6}$/.test(stockNo)) {
+    setStatus('請輸入有效的台股代號（4-6 位數字）', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnSearch');
+  btn.disabled = true;
+  hideResults();
+  setStatus('正在從 FinMind 抓取資料（股價＋營收＋EPS）...', 'loading');
+
+  try {
+    // All three API calls in parallel
+    const [priceData, revenueData, finData] = await Promise.all([
+      fetchPriceData(stockNo),
+      fetchRevenue(stockNo),
+      fetchEPS(stockNo)
+    ]);
+
+    if (priceData.length < 50) {
+      setStatus(`僅取得 ${priceData.length} 筆交易日資料，不足以計算。`, 'error');
+      btn.disabled = false;
+      return;
+    }
+
+    setStatus('正在計算 Minervini 指標...', 'loading');
+
+    // === Price indicators ===
+    const latest = priceData[priceData.length - 1];
+    const prev = priceData.length > 1 ? priceData[priceData.length - 2] : latest;
+    const ma50 = calcMA(priceData, 50);
+    const ma150 = calcMA(priceData, 150);
+    const ma200 = calcMA(priceData, 200);
+    const period52 = Math.min(250, priceData.length);
+    const recent = priceData.slice(-period52);
+    const high52W = Math.max(...recent.map(d => d.high));
+    const low52W = Math.min(...recent.map(d => d.low));
+    const volToday = Math.round(latest.volume / 1000); // 張
+
+    // === Fundamental data ===
+    const revResult = calcRevenueYoY(revenueData);
+    const epsResult = extractEPS(finData);
+
+    const manualRevYoy = document.getElementById('revYoy').value;
+    const manualEpsCurrent = document.getElementById('epsCurrent').value;
+    const manualEpsLastYear = document.getElementById('epsLastYear').value;
+
+    const revYoy = manualRevYoy !== '' ? parseFloat(manualRevYoy) : (revResult ? revResult.yoy : null);
+    const epsCurrent = manualEpsCurrent !== '' ? parseFloat(manualEpsCurrent) : (epsResult ? epsResult.current : null);
+    const epsLastYear = manualEpsLastYear !== '' ? parseFloat(manualEpsLastYear) : (epsResult ? epsResult.lastYear : null);
+
+    const revSource = manualRevYoy !== '' ? '手動' : (revResult ? '自動' : '—');
+    const epsSource = manualEpsCurrent !== '' ? '手動' : (epsResult ? '自動' : '—');
+
+    // === Conditions ===
+    const conditions = [];
+
+    const hasAllMA = ma50 !== null && ma150 !== null && ma200 !== null;
+    const stage2 = hasAllMA && latest.close > ma50 && ma50 > ma150 && ma150 > ma200;
+    conditions.push({
+      name: '第二階段多頭排列',
+      desc: '收盤價 > 50MA > 150MA > 200MA',
+      pass: stage2,
+      value: hasAllMA
+        ? `${latest.close.toFixed(1)} ${latest.close > ma50 ? '>' : '≤'} ${ma50.toFixed(1)} ${ma50 > ma150 ? '>' : '≤'} ${ma150.toFixed(1)} ${ma150 > ma200 ? '>' : '≤'} ${ma200.toFixed(1)}`
+        : '資料不足（需 200 日以上）',
+      required: true, available: hasAllMA
+    });
+
+    const aboveLow = low52W > 0 && latest.close > low52W * 1.3;
+    const aboveLowPct = low52W > 0 ? ((latest.close / low52W - 1) * 100).toFixed(1) : '?';
+    conditions.push({
+      name: '高於 52 週低點 30%',
+      desc: `股價需高於 52 週最低點 (${low52W.toFixed(1)}) 的 30% 以上`,
+      pass: aboveLow, value: `高於低點 ${aboveLowPct}%（需 >30%）`,
+      required: true, available: true
+    });
+
+    const nearHigh = high52W > 0 && latest.close > high52W * 0.75;
+    const fromHighPct = high52W > 0 ? ((1 - latest.close / high52W) * 100).toFixed(1) : '?';
+    conditions.push({
+      name: '靠近 52 週高點',
+      desc: `股價距 52 週最高點 (${high52W.toFixed(1)}) 在 25% 以內`,
+      pass: nearHigh, value: `距高點 ${fromHighPct}%（需 <25%）`,
+      required: true, available: true
+    });
+
+    const revPass = revYoy !== null && revYoy > 20;
+    conditions.push({
+      name: '月營收年增率 > 20%',
+      desc: `營收成長動能（${revSource}）`,
+      pass: revPass,
+      value: revYoy !== null ? `${revYoy.toFixed(1)}%` : '無資料',
+      required: false, available: revYoy !== null
+    });
+
+    const epsPass = epsCurrent !== null && epsLastYear !== null && epsCurrent > 0 && epsCurrent > epsLastYear;
+    conditions.push({
+      name: 'EPS 正成長',
+      desc: `當季 EPS > 0 且超越去年同期（${epsSource}）`,
+      pass: epsPass,
+      value: (epsCurrent !== null && epsLastYear !== null)
+        ? `${epsCurrent.toFixed(2)} vs 去年 ${epsLastYear.toFixed(2)}`
+        : (epsCurrent !== null ? `${epsCurrent.toFixed(2)}（缺去年同期）` : '無資料'),
+      required: false, available: epsCurrent !== null
+    });
+
+    const volPass = volToday > 1500;
+    conditions.push({
+      name: '成交量 > 1,500 張',
+      desc: '確保流動性充足',
+      pass: volPass, value: `${volToday.toLocaleString()} 張`,
+      required: true, available: true
+    });
+
+    // === Score ===
+    const techConds = conditions.filter(c => c.required);
+    const fundConds = conditions.filter(c => !c.required);
+    const techPassN = techConds.filter(c => c.pass).length;
+    const fundAvail = fundConds.filter(c => c.available);
+    const fundPassN = fundAvail.filter(c => c.pass).length;
+    const techScore = (techPassN / techConds.length) * 60;
+    const fundScore = fundAvail.length > 0 ? (fundPassN / fundAvail.length) * 40 : 0;
+    const totalScore = Math.round(techScore + fundScore);
+
+    // === Render: Stock Header ===
+    const changeVal = latest.spread || (latest.close - prev.close);
+    const changePct = prev.close ? (changeVal / prev.close * 100) : 0;
+    const direction = changeVal > 0 ? 'up' : changeVal < 0 ? 'down' : 'flat';
+    const sign = changeVal > 0 ? '+' : '';
+
+    document.getElementById('stockName').textContent = stockNo;
+    document.getElementById('stockPrice').className = `stock-price ${direction}`;
+    document.getElementById('stockPrice').textContent = latest.close.toFixed(2);
+    document.getElementById('stockChange').innerHTML =
+      `<span style="color:${direction === 'up' ? '#ef4444' : direction === 'down' ? '#22c55e' : '#e0e6ed'}">` +
+      `${sign}${changeVal.toFixed(2)} (${sign}${changePct.toFixed(2)}%)</span>`;
+    document.getElementById('stockMeta').textContent =
+      `最後交易日：${latest.date} ｜ ${priceData.length} 筆交易日 ｜ 營收：${revSource} ｜ EPS：${epsSource}`;
+    document.getElementById('stockHeader').style.display = 'block';
+
+    // === Cost Price ===
+    const costInput = document.getElementById('costPrice').value;
+    const costPrice = costInput !== '' ? parseFloat(costInput) : null;
+
+    // === Render: K-Line Chart ===
+    renderChart(priceData, ma50, ma150, ma200, high52W, low52W, costPrice);
+
+    // === Render: Score ===
+    const circ = 2 * Math.PI * 52;
+    document.getElementById('scoreArc').setAttribute('stroke-dasharray', `${(totalScore / 100) * circ} ${circ}`);
+    const sc = totalScore >= 80 ? '#34d399' : totalScore >= 50 ? '#f0b90b' : '#f87171';
+    document.getElementById('scoreArc').setAttribute('stroke', sc);
+    document.getElementById('scoreText').textContent = totalScore;
+    document.getElementById('scoreText').style.color = sc;
+
+    let label, desc;
+    if (totalScore >= 80) { label = '強力推薦關注'; desc = '符合 Minervini 趨勢模板大部分條件'; }
+    else if (totalScore >= 50) { label = '部分符合'; desc = '有些條件尚未達標，建議持續追蹤'; }
+    else { label = '不符合模板'; desc = '目前不滿足 Minervini 趨勢模板的關鍵條件'; }
+    document.getElementById('scoreLabel').textContent = label;
+    document.getElementById('scoreLabel').style.color = sc;
+    document.getElementById('scoreDesc').textContent = desc;
+    if (fundAvail.length === 0) {
+      document.getElementById('scoreDesc').textContent += '（基本面資料未取得，僅計算技術面 60 分）';
+    }
+    document.getElementById('scoreCard').style.display = 'block';
+    document.getElementById('btnAddWatch').style.display = 'block';
+    await loadWatchlist();
+
+    // === Render: Checklist ===
+    document.getElementById('checkItems').innerHTML = conditions.map(c => {
+      const cls = !c.available ? 'na' : (c.pass ? 'pass' : 'fail');
+      const icon = !c.available ? '—' : (c.pass ? '✓' : '✗');
+      return `
+        <div class="check-item">
+          <div class="check-icon ${cls}">${icon}</div>
+          <div class="check-content">
+            <div class="check-title">${c.name}${!c.required ? ' <span style="color:#6b7785;font-weight:400;font-size:0.75rem">(基本面)</span>' : ''}</div>
+            <div class="check-detail">${c.desc}</div>
+          </div>
+          <div class="check-value ${cls}">${c.value}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('checklist').style.display = 'block';
+
+    // === Render: Turning Point Detection ===
+    const turningPoints = calcTurningPoints(priceData, ma50, ma150, ma200);
+    renderTurningPoints(turningPoints);
+
+    // === Render: MA grid ===
+    const maItems = [
+      { label: '收盤價', val: latest.close.toFixed(2) },
+      { label: '50MA', val: ma50 ? ma50.toFixed(2) : 'N/A' },
+      { label: '150MA', val: ma150 ? ma150.toFixed(2) : 'N/A' },
+      { label: '200MA', val: ma200 ? ma200.toFixed(2) : 'N/A' },
+      { label: '52 週最高', val: high52W.toFixed(2) },
+      { label: '52 週最低', val: low52W.toFixed(2) },
+      { label: '成交量(張)', val: volToday.toLocaleString() },
+      { label: '交易日數', val: priceData.length }
+    ];
+    document.getElementById('maGrid').innerHTML = maItems.map(m =>
+      `<div class="ma-item"><div class="ma-label">${m.label}</div><div class="ma-val">${m.val}</div></div>`
+    ).join('');
+    document.getElementById('maInfo').style.display = 'block';
+
+    // === Render: Fundamental detail ===
+    const fundItems = [];
+    if (revResult) {
+      fundItems.push({ label: '最新月營收', val: `${(revResult.latestRevenue / 1000).toLocaleString(undefined, {maximumFractionDigits:0})} 千元`, sub: revResult.month });
+      fundItems.push({ label: '去年同期營收', val: `${(revResult.lastYearRevenue / 1000).toLocaleString(undefined, {maximumFractionDigits:0})} 千元`, sub: revResult.lastYearMonth });
+      fundItems.push({ label: '營收年增率', val: `${revResult.yoy >= 0 ? '+' : ''}${revResult.yoy.toFixed(1)}%`, sub: revResult.yoy > 20 ? '✓ >20%' : '✗ <20%' });
+    }
+    if (epsResult) {
+      fundItems.push({ label: '最新季 EPS', val: `${epsResult.current.toFixed(2)} 元`, sub: epsResult.currentDate });
+      if (epsResult.lastYear !== null) {
+        fundItems.push({ label: '去年同期 EPS', val: `${epsResult.lastYear.toFixed(2)} 元`, sub: epsResult.lastYearDate });
+      }
+    }
+    if (fundItems.length > 0) {
+      document.getElementById('fundDetailGrid').innerHTML = fundItems.map(f =>
+        `<div class="fund-detail-item"><div class="fund-detail-label">${f.label}</div><div class="fund-detail-val">${f.val}</div><div class="fund-detail-sub">${f.sub}</div></div>`
+      ).join('');
+      document.getElementById('fundDetail').style.display = 'block';
+    }
+
+    // === Render: Trading Plan ===
+    renderTradePlan(latest.close, totalScore, ma50, ma150, high52W, low52W, stage2, costPrice);
+
+    setStatus('', '');
+  } catch (err) {
+    setStatus(`分析失敗：${err.message}`, 'error');
+    console.error(err);
+  }
+
+  btn.disabled = false;
+}
+
+// ========== Trading Plan ==========
+// ========== K-Line Chart ==========
+let chartInstance = null;
+
+function renderChart(priceData, ma50Val, ma150Val, ma200Val, high52W, low52W, costPrice) {
+  const container = document.getElementById('chartContainer');
+  const volContainer = document.getElementById('volumeContainer');
+
+  // Clear previous chart
+  container.innerHTML = '';
+  volContainer.innerHTML = '';
+
+  if (typeof LightweightCharts === 'undefined') {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7785;font-size:0.85rem;">K 線圖載入失敗（lightweight-charts 未載入）</div>';
+    document.getElementById('chartSection').style.display = 'block';
+    return;
+  }
+
+  // Use last 200 days for chart display
+  const chartData = priceData.slice(-200);
+
+  // === Price Chart ===
+  const chart = LightweightCharts.createChart(container, {
+    width: container.clientWidth,
+    height: 400,
+    layout: {
+      background: { color: '#0f1923' },
+      textColor: '#6b7785',
+      fontSize: 11,
+    },
+    grid: {
+      vertLines: { color: '#1a2634' },
+      horzLines: { color: '#1a2634' },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: '#f0b90b33', width: 1 },
+      horzLine: { color: '#f0b90b33', width: 1 },
+    },
+    rightPriceScale: {
+      borderColor: '#2a3a4a',
+    },
+    timeScale: {
+      borderColor: '#2a3a4a',
+      timeVisible: false,
+    },
+  });
+
+  // Candlestick series (台股: 紅漲綠跌)
+  const candleSeries = chart.addCandlestickSeries({
+    upColor: '#ef4444',
+    downColor: '#22c55e',
+    borderUpColor: '#ef4444',
+    borderDownColor: '#22c55e',
+    wickUpColor: '#ef4444',
+    wickDownColor: '#22c55e',
+  });
+
+  candleSeries.setData(chartData.map(d => ({
+    time: d.date,
+    open: d.open,
+    high: d.high,
+    low: d.low,
+    close: d.close,
+  })));
+
+  // === Moving Average Lines ===
+  function calcMALine(data, period) {
+    const result = [];
+    for (let i = period - 1; i < data.length; i++) {
+      const slice = data.slice(i - period + 1, i + 1);
+      const avg = slice.reduce((s, d) => s + d.close, 0) / period;
+      result.push({ time: data[i].date, value: avg });
+    }
+    return result;
+  }
+
+  // 50MA - Blue
+  const ma50Line = chart.addLineSeries({
+    color: '#3b82f6',
+    lineWidth: 1,
+    lineStyle: 0,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false,
+  });
+  ma50Line.setData(calcMALine(priceData.slice(-250), 50));
+
+  // 150MA - Orange
+  const ma150Line = chart.addLineSeries({
+    color: '#f97316',
+    lineWidth: 1,
+    lineStyle: 0,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false,
+  });
+  const ma150Data = calcMALine(priceData, 150);
+  if (ma150Data.length > 0) ma150Line.setData(ma150Data);
+
+  // 200MA - Purple
+  const ma200Line = chart.addLineSeries({
+    color: '#a855f7',
+    lineWidth: 1,
+    lineStyle: 0,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false,
+  });
+  const ma200Data = calcMALine(priceData, 200);
+  if (ma200Data.length > 0) ma200Line.setData(ma200Data);
+
+  // 52-Week High line (dashed)
+  const high52Line = chart.addLineSeries({
+    color: '#f0b90b44',
+    lineWidth: 1,
+    lineStyle: 2, // dashed
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false,
+  });
+  high52Line.setData(chartData.map(d => ({ time: d.date, value: high52W })));
+
+  // 52-Week Low line (dashed)
+  const low52Line = chart.addLineSeries({
+    color: '#f8717144',
+    lineWidth: 1,
+    lineStyle: 2,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false,
+  });
+  low52Line.setData(chartData.map(d => ({ time: d.date, value: low52W })));
+
+  // Cost price line + stop-loss lines (if user has position)
+  let costLegendHTML = '';
+  if (costPrice && costPrice > 0) {
+    // Cost line (solid white)
+    const costLine = chart.addLineSeries({
+      color: '#e0e6ed',
+      lineWidth: 2,
+      lineStyle: 0,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    costLine.setData(chartData.map(d => ({ time: d.date, value: costPrice })));
+
+    // Stop-loss 5% (dashed red)
+    const stop5 = costPrice * 0.95;
+    const stop5Line = chart.addLineSeries({
+      color: '#f8717188',
+      lineWidth: 1,
+      lineStyle: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    stop5Line.setData(chartData.map(d => ({ time: d.date, value: stop5 })));
+
+    // Stop-loss 8% (dashed red stronger)
+    const stop8 = costPrice * 0.92;
+    const stop8Line = chart.addLineSeries({
+      color: '#ef444488',
+      lineWidth: 1,
+      lineStyle: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    stop8Line.setData(chartData.map(d => ({ time: d.date, value: stop8 })));
+
+    // T1 profit target (dashed green)
+    const t1_5 = costPrice * 1.10; // 5% stop * 2 = 10%
+    const t1Line = chart.addLineSeries({
+      color: '#34d39966',
+      lineWidth: 1,
+      lineStyle: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    t1Line.setData(chartData.map(d => ({ time: d.date, value: t1_5 })));
+
+    costLegendHTML = `
+      <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#e0e6ed"></div>成本 ${costPrice.toFixed(1)}</div>
+      <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#f87171;height:1px;border-top:1px dashed #f87171"></div>停損5% ${stop5.toFixed(1)}</div>
+      <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#ef4444;height:1px;border-top:1px dashed #ef4444"></div>停損8% ${stop8.toFixed(1)}</div>
+      <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#34d399;height:1px;border-top:1px dashed #34d399"></div>T1 停利 ${t1_5.toFixed(1)}</div>
+    `;
+  }
+
+  // === Volume Chart ===
+  const volChart = LightweightCharts.createChart(volContainer, {
+    width: volContainer.clientWidth,
+    height: 100,
+    layout: {
+      background: { color: '#0f1923' },
+      textColor: '#6b7785',
+      fontSize: 10,
+    },
+    grid: {
+      vertLines: { color: '#1a2634' },
+      horzLines: { color: '#1a2634' },
+    },
+    rightPriceScale: {
+      borderColor: '#2a3a4a',
+      scaleMargins: { top: 0.1, bottom: 0 },
+    },
+    timeScale: {
+      visible: false,
+    },
+    crosshair: {
+      vertLine: { visible: false },
+      horzLine: { visible: false },
+    },
+  });
+
+  const volumeSeries = volChart.addHistogramSeries({
+    priceFormat: { type: 'volume' },
+    priceScaleId: '',
+  });
+
+  volumeSeries.setData(chartData.map(d => ({
+    time: d.date,
+    value: d.volume,
+    color: d.close >= d.open ? '#ef444466' : '#22c55e66',
+  })));
+
+  // Sync time scales
+  chart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+    if (range) volChart.timeScale().setVisibleLogicalRange(range);
+  });
+  volChart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+    if (range) chart.timeScale().setVisibleLogicalRange(range);
+  });
+
+  // Fit content
+  chart.timeScale().fitContent();
+  volChart.timeScale().fitContent();
+
+  // Responsive
+  const resizeObserver = new ResizeObserver(() => {
+    chart.applyOptions({ width: container.clientWidth });
+    volChart.applyOptions({ width: volContainer.clientWidth });
+  });
+  resizeObserver.observe(container);
+
+  // Legend
+  document.getElementById('chartLegend').innerHTML = `
+    <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#3b82f6"></div>50MA</div>
+    <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#f97316"></div>150MA</div>
+    <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#a855f7"></div>200MA</div>
+    <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#f0b90b44;height:1px;border-top:1px dashed #f0b90b"></div>52 週高 ${high52W.toFixed(1)}</div>
+    <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#f8717144;height:1px;border-top:1px dashed #f87171"></div>52 週低 ${low52W.toFixed(1)}</div>
+    ${costLegendHTML}
+  `;
+
+  document.getElementById('chartSection').style.display = 'block';
+  chartInstance = chart;
+}
+
+// ========== Trading Plan ==========
+function renderTradePlan(price, score, ma50, ma150, high52W, low52W, isStage2, costPrice) {
+  const p = price;
+  const hasCost = costPrice !== null && costPrice > 0;
+  const cost = hasCost ? costPrice : p;
+
+  // Current P/L if has cost
+  const plAmount = hasCost ? (p - cost) : 0;
+  const plPct = hasCost ? ((p - cost) / cost * 100) : 0;
+  const isProfit = plAmount >= 0;
+
+  // Determine signal strength
+  let signal, signalColor, signalDesc;
+  if (score >= 80 && isStage2) {
+    signal = '強烈關注'; signalColor = '#34d399';
+    signalDesc = hasCost ? '趨勢模板高度符合，持股續抱，依下方計畫管理部位' : '趨勢模板高度符合，等待 VCP 突破訊號後可考慮進場';
+  } else if (score >= 60 && isStage2) {
+    signal = '條件接近'; signalColor = '#fbbf24';
+    signalDesc = hasCost ? '技術面仍達標，可持有但應縮緊停損' : '技術面達標但基本面稍弱，建議觀望或輕倉試單';
+  } else if (score >= 50) {
+    signal = '尚需等待'; signalColor = '#fb923c';
+    signalDesc = hasCost ? '條件開始轉弱，建議減碼或設定更緊的停損' : '部分條件未達標，不建議此時進場，持續追蹤';
+  } else {
+    signal = '不符合條件'; signalColor = '#f87171';
+    signalDesc = hasCost ? '趨勢模板已不符合，強烈建議出場或大幅減碼' : '目前不滿足 Minervini 趨勢模板，建議迴避';
+  }
+
+  function buildPlanHTML(stopPct, type) {
+    const base = cost; // use cost as base for all calculations
+    const stopPrice = (base * (1 - stopPct / 100)).toFixed(2);
+    const riskPerShare = (base - stopPrice).toFixed(2);
+
+    // Profit targets based on risk/reward from COST
+    const t1Pct = stopPct * 2;
+    const t2Pct = stopPct * 3;
+    const t3Pct = stopPct * 5;
+    const target1 = (base * (1 + t1Pct / 100)).toFixed(2);
+    const target2 = (base * (1 + t2Pct / 100)).toFixed(2);
+    const target3 = (base * (1 + t3Pct / 100)).toFixed(2);
+
+    const ma50Trail = ma50 ? ma50.toFixed(2) : 'N/A';
+    const typeName = type === 'conservative' ? '穩健型' : '積極型';
+
+    // Determine where current price sits relative to targets
+    function priceStatus(target) {
+      const t = parseFloat(target);
+      if (p >= t) return '<span style="color:#34d399;font-size:0.72rem;margin-left:4px">✓ 已達</span>';
+      const diff = ((t - p) / p * 100).toFixed(1);
+      return `<span style="color:#6b7785;font-size:0.72rem;margin-left:4px">差 ${diff}%</span>`;
+    }
+
+    function stopStatus() {
+      const s = parseFloat(stopPrice);
+      if (p <= s) return '<span style="color:#f87171;font-size:0.72rem;margin-left:4px;font-weight:700">⚠ 已觸發！</span>';
+      const diff = ((p - s) / p * 100).toFixed(1);
+      return `<span style="color:#6b7785;font-size:0.72rem;margin-left:4px">距停損 ${diff}%</span>`;
+    }
+
+    // Position status card (only if has cost)
+    let positionHTML = '';
+    if (hasCost) {
+      const plColor = isProfit ? '#34d399' : '#f87171';
+      const plSign = isProfit ? '+' : '';
+
+      // Determine current advice based on price position
+      let adviceHTML = '';
+      if (p <= parseFloat(stopPrice)) {
+        adviceHTML = `<div style="background:#4c0519;padding:10px 14px;border-radius:6px;margin-top:10px;font-size:0.82rem;color:#f87171;font-weight:600">
+          ⚠ 停損已觸發！建議立即出場，不要猶豫。</div>`;
+      } else if (p >= parseFloat(target2)) {
+        adviceHTML = `<div style="background:#064e3b;padding:10px 14px;border-radius:6px;margin-top:10px;font-size:0.82rem;color:#34d399">
+          ✓ 獲利豐厚，建議已賣出 2/3，剩餘 1/3 用移動停利保護。停損應已上移至 T1（${target1}）以上。</div>`;
+      } else if (p >= parseFloat(target1)) {
+        adviceHTML = `<div style="background:#064e3b;padding:10px 14px;border-radius:6px;margin-top:10px;font-size:0.82rem;color:#34d399">
+          ✓ 已達 T1，建議賣出 1/3 持股鎖定獲利，並將停損上移至成本價 ${cost.toFixed(2)}（保本出場）。</div>`;
+      } else if (plPct > 0 && plPct < t1Pct) {
+        adviceHTML = `<div style="background:#422006;padding:10px 14px;border-radius:6px;margin-top:10px;font-size:0.82rem;color:#fbbf24">
+          持股中，尚未達 T1 停利點。繼續持有，嚴守停損 ${stopPrice}。</div>`;
+      } else if (plPct < 0 && plPct > -stopPct) {
+        adviceHTML = `<div style="background:#431407;padding:10px 14px;border-radius:6px;margin-top:10px;font-size:0.82rem;color:#fb923c">
+          帳面虧損中，但尚未觸及停損。保持紀律，跌破 ${stopPrice} 就出場。不要攤平！</div>`;
+      }
+
+      positionHTML = `
+        <div class="trade-section" style="background:#0f1923;padding:16px;border-radius:10px;margin-bottom:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-size:0.75rem;color:#6b7785;">我的持倉成本</div>
+              <div style="font-size:1.4rem;font-weight:800;color:#e0e6ed;">${cost.toFixed(2)}</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:0.75rem;color:#6b7785;">現價</div>
+              <div style="font-size:1.4rem;font-weight:800;color:#e0e6ed;">${p.toFixed(2)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.75rem;color:#6b7785;">損益</div>
+              <div style="font-size:1.4rem;font-weight:800;color:${plColor};">${plSign}${plAmount.toFixed(2)}</div>
+              <div style="font-size:0.85rem;color:${plColor};">${plSign}${plPct.toFixed(2)}%</div>
+            </div>
+          </div>
+          ${adviceHTML}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="trade-section">
+        <div class="trade-section-title" style="color:${signalColor}">
+          訊號強度：${signal}
+        </div>
+        <div style="font-size:0.8rem; color:#6b7785; margin-bottom:14px;">${signalDesc}</div>
+      </div>
+
+      ${positionHTML}
+
+      ${!hasCost ? `<div class="trade-section">
+        <div class="trade-section-title">進場條件</div>
+        <div class="trade-row">
+          <div class="trade-badge entry">參考價</div>
+          <div class="trade-price" style="color:#38bdf8">${p.toFixed(2)}</div>
+          <div class="trade-desc">目前收盤價（實際進場需確認 VCP 突破）</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge entry">突破確認</div>
+          <div class="trade-price" style="color:#38bdf8">${high52W.toFixed(2)}</div>
+          <div class="trade-desc">52 週高點，放量突破此價為強進場訊號</div>
+        </div>
+      </div>` : ''}
+
+      <div class="trade-section">
+        <div class="trade-section-title">停損設定（${typeName} ${stopPct}%）${hasCost ? ' — 基於你的成本價' : ''}</div>
+        <div class="trade-row">
+          <div class="trade-badge stop">停損價</div>
+          <div class="trade-price" style="color:#f87171">${stopPrice} ${stopStatus()}</div>
+          <div class="trade-desc">低於${hasCost ? '成本' : '買進'}價 ${stopPct}%，每股風險 ${riskPerShare} 元</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge stop">執行方式</div>
+          <div class="trade-price" style="color:#f87171">收盤價</div>
+          <div class="trade-desc">以日收盤價跌破停損為準，避免盤中假跌破洗出</div>
+        </div>
+      </div>
+
+      <div class="trade-section">
+        <div class="trade-section-title">分段獲利出場${hasCost ? ' — 基於你的成本價' : ''}</div>
+        <div class="trade-row">
+          <div class="trade-badge profit">T1 停利</div>
+          <div class="trade-price" style="color:#34d399">${target1} ${priceStatus(target1)}</div>
+          <div class="trade-desc">+${t1Pct.toFixed(0)}%（1:2 風報比）→ 賣出 1/3 持股，停損移至成本價 ${base.toFixed(2)}</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge profit">T2 停利</div>
+          <div class="trade-price" style="color:#34d399">${target2} ${priceStatus(target2)}</div>
+          <div class="trade-desc">+${t2Pct.toFixed(0)}%（1:3 風報比）→ 再賣 1/3，停損上移至 T1 價位 ${target1}</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge profit">T3 目標</div>
+          <div class="trade-price" style="color:#34d399">${target3} ${priceStatus(target3)}</div>
+          <div class="trade-desc">+${t3Pct.toFixed(0)}%（1:5 風報比）→ 最後 1/3 部位的理想目標</div>
+        </div>
+      </div>
+
+      <div class="trade-section">
+        <div class="trade-section-title">移動停利（保護獲利）</div>
+        <div class="trade-row">
+          <div class="trade-badge trail">50MA</div>
+          <div class="trade-price" style="color:#fbbf24">${ma50Trail}</div>
+          <div class="trade-desc">股價跌破 50 日均線且收盤未站回 → 出清剩餘部位</div>
+        </div>
+        ${ma150 ? `<div class="trade-row">
+          <div class="trade-badge trail">150MA</div>
+          <div class="trade-price" style="color:#fbbf24">${ma150.toFixed(2)}</div>
+          <div class="trade-desc">最後防線，跌破 150MA 代表趨勢可能轉空，必須離場</div>
+        </div>` : ''}
+        <div class="trade-row">
+          <div class="trade-badge warn">異常訊號</div>
+          <div class="trade-price" style="color:#fb923c">留意</div>
+          <div class="trade-desc">單日暴量長黑 K（跌幅 >3% 且量為均量 2 倍）→ 立即減碼 50%</div>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('plan-conservative').innerHTML = buildPlanHTML(5, 'conservative');
+  document.getElementById('plan-aggressive').innerHTML = buildPlanHTML(8, 'aggressive');
+
+  // Trade note
+  const baseRef = hasCost ? cost : price;
+  const noteHTML = `
+    <strong>Minervini 核心紀律：</strong><br>
+    ① 絕不向下攤平 — 股價跌到停損就走，不找藉口加碼<br>
+    ② 單筆風險控制 — 每筆交易虧損不超過總資金的 1-2%（用停損幅度反推持股張數）<br>
+    ③ 進場需要理由，出場不需要 — 停損觸發就是出場理由<br>
+    ④ 前 2-3 天是關鍵 — 如果進場後股價沒有如預期上漲，考慮在停損前主動減碼<br><br>
+    <strong>持股張數建議：</strong>假設總資金 100 萬，最大單筆虧損 1%（= 1 萬元），停損幅度 ${(baseRef * 0.05).toFixed(0)}-${(baseRef * 0.08).toFixed(0)} 元/股 →
+    可買 ${Math.floor(10000 / (baseRef * 0.05) / 1000)} - ${Math.floor(10000 / (baseRef * 0.08) / 1000)} 張
+    （依你的資金規模和風險承受度調整）
+  `;
+  document.getElementById('tradeNote').innerHTML = noteHTML;
+  document.getElementById('tradePlan').style.display = 'block';
+}
+
+function switchPlan(type) {
+  document.querySelectorAll('.plan-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.plan-content').forEach(c => c.classList.remove('active'));
+
+  if (type === 'conservative') {
+    document.querySelectorAll('.plan-tab')[0].classList.add('active');
+    document.getElementById('plan-conservative').classList.add('active');
+  } else {
+    document.querySelectorAll('.plan-tab')[1].classList.add('active');
+    document.getElementById('plan-aggressive').classList.add('active');
+  }
+}
+
+// ========== IndexedDB Watchlist Management ==========
+const DB_NAME = 'MinerviniWatchlist';
+const DB_VERSION = 1;
+const STORE_NAME = 'watchlist';
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'code' });
+      }
+    };
+  });
+}
+
+async function addToWatchlist() {
+  const code = document.getElementById('stockCode').value.trim();
+  if (!code) return;
+
+  // Use cost price if provided, otherwise use current closing price
+  const costInput = document.getElementById('costPrice').value;
+  const costVal = costInput !== '' ? parseFloat(costInput) : null;
+
+  const priceEl = document.getElementById('stockPrice');
+  const priceText = priceEl ? priceEl.textContent : '';
+  const closePrice = parseFloat(priceText.replace(/[^\d.-]/g, ''));
+
+  const price = (costVal && !isNaN(costVal)) ? costVal : closePrice;
+
+  if (isNaN(price)) {
+    alert('無法取得股價，請重試。');
+    return;
+  }
+
+  try {
+    const db = await initDB();
+
+    // Check if stock already exists in watchlist
+    const readTx = db.transaction(STORE_NAME, 'readonly');
+    const readStore = readTx.objectStore(STORE_NAME);
+    const existing = await new Promise((resolve, reject) => {
+      const req = readStore.get(code);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = reject;
+    });
+
+    const today = new Date().toISOString().split('T')[0];
+    let entry;
+    let msg;
+
+    if (existing) {
+      // Already in watchlist: update cost only, keep original date
+      entry = {
+        code: code,
+        dateAdded: existing.dateAdded,  // preserve original tracking date
+        entryPrice: price,
+        currentPrice: existing.currentPrice || null
+      };
+      msg = `${code} 持倉成本已更新為 ${price.toFixed(2)}（追蹤日期維持 ${existing.dateAdded}）`;
+    } else {
+      // New entry
+      entry = {
+        code: code,
+        dateAdded: today,
+        entryPrice: price
+      };
+      msg = `${code} 已加入觀察名單！`;
+    }
+
+    const writeTx = db.transaction(STORE_NAME, 'readwrite');
+    const writeStore = writeTx.objectStore(STORE_NAME);
+    writeStore.put(entry);
+    await new Promise((resolve, reject) => {
+      writeTx.oncomplete = resolve;
+      writeTx.onerror = reject;
+    });
+
+    alert(msg);
+    await loadWatchlist();
+  } catch (e) {
+    console.error('加入失敗:', e);
+    alert('加入觀察名單失敗');
+  }
+}
+
+async function loadWatchlist() {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+
+    const items = await new Promise((resolve, reject) => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    const section = document.getElementById('watchlistSection');
+    const tbody = document.getElementById('watchlistTbody');
+    const empty = document.getElementById('watchlistEmpty');
+    const table = document.getElementById('watchlistTable');
+    const actions = document.getElementById('watchlistActions');
+
+    if (items.length === 0) {
+      section.classList.remove('show');
+      table.style.display = 'none';
+      empty.style.display = 'block';
+      actions.style.display = 'none';
+    } else {
+      section.classList.add('show');
+      table.style.display = 'table';
+      empty.style.display = 'none';
+      actions.style.display = 'flex';
+
+      tbody.innerHTML = items.map(item => `
+        <tr>
+          <td class="watchlist-code">${item.code}</td>
+          <td>${item.dateAdded}</td>
+          <td>${item.entryPrice.toFixed(2)}</td>
+          <td id="price-${item.code}">—</td>
+          <td id="change-${item.code}">—</td>
+          <td><button class="btn-remove" onclick="removeFromWatchlist('${item.code}')">移除</button></td>
+        </tr>
+      `).join('');
+    }
+  } catch (e) {
+    console.error('載入失敗:', e);
+  }
+}
+
+async function removeFromWatchlist(code) {
+  if (!confirm(`確定要移除 ${code} 嗎？`)) return;
+
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+
+    store.delete(code);
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = reject;
+    });
+
+    await loadWatchlist();
+  } catch (e) {
+    console.error('刪除失敗:', e);
+  }
+}
+
+async function refreshWatchlist() {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+
+    const items = await new Promise((resolve, reject) => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    if (items.length === 0) return;
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '更新中...';
+
+    for (const item of items) {
+      try {
+        const data = await fetchPriceData(item.code);
+        if (data && data.length > 0) {
+          const latest = data[data.length - 1];
+          const currentPrice = latest.close;
+          const gain = currentPrice - item.entryPrice;
+          const gainPct = (gain / item.entryPrice * 100).toFixed(1);
+
+          const priceEl = document.getElementById(`price-${item.code}`);
+          const changeEl = document.getElementById(`change-${item.code}`);
+
+          if (priceEl) priceEl.textContent = currentPrice.toFixed(2);
+
+          if (changeEl) {
+            const status = gain >= 0 ? 'gain' : 'loss';
+            const sign = gain >= 0 ? '+' : '';
+            changeEl.innerHTML = `<span class="watchlist-status ${status}">${sign}${gainPct}%</span>`;
+          }
+        }
+      } catch (e) {
+        console.error(`更新 ${item.code} 失敗:`, e);
+      }
+    }
+
+    btn.disabled = false;
+    btn.textContent = '一鍵更新價格';
+  } catch (e) {
+    console.error('更新失敗:', e);
+    event.target.disabled = false;
+    event.target.textContent = '一鍵更新價格';
+  }
+}
+
+// ========== 匯出觀察名單 ==========
+async function exportWatchlist() {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const items = await new Promise((resolve, reject) => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    if (items.length === 0) {
+      alert('觀察名單為空，無資料可匯出。');
+      return;
+    }
+
+    const json = JSON.stringify(items, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `watchlist-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('匯出失敗:', e);
+    alert('匯出失敗：' + e.message);
+  }
+}
+
+// ========== 匯入觀察名單 ==========
+async function importWatchlist(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!Array.isArray(data)) {
+      alert('JSON 格式錯誤：需要是陣列格式。');
+      return;
+    }
+
+    // 驗證每筆資料格式
+    for (const item of data) {
+      if (!item.code) {
+        alert('JSON 格式錯誤：每筆資料需要有 code 欄位。');
+        return;
+      }
+    }
+
+    const mode = confirm(
+      `匯入 ${data.length} 筆資料\n\n` +
+      `按「確定」→ 合併（保留現有 + 加入新的）\n` +
+      `按「取消」→ 覆蓋（清空現有，僅保留匯入資料）`
+    );
+
+    const db = await initDB();
+
+    if (!mode) {
+      // 覆蓋模式：先清空
+      const clearTx = db.transaction(STORE_NAME, 'readwrite');
+      clearTx.objectStore(STORE_NAME).clear();
+      await new Promise((resolve, reject) => {
+        clearTx.oncomplete = resolve;
+        clearTx.onerror = reject;
+      });
+    }
+
+    // 寫入資料
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    for (const item of data) {
+      store.put({
+        code: item.code,
+        dateAdded: item.dateAdded || new Date().toISOString().slice(0, 10),
+        entryPrice: item.entryPrice || 0,
+        currentPrice: item.currentPrice || null
+      });
+    }
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = reject;
+    });
+
+    await loadWatchlist();
+    alert(`匯入完成！共 ${data.length} 筆資料。`);
+  } catch (e) {
+    console.error('匯入失敗:', e);
+    alert('匯入失敗：' + e.message);
+  }
+
+  // 清除 file input 讓同一檔案可再次匯入
+  event.target.value = '';
+}
+
+// ========== 重置觀察名單 ==========
+async function resetWatchlist() {
+  const confirmed = confirm('確定要重置觀察名單嗎？\n\n此操作會刪除所有追蹤紀錄，無法復原。\n建議先匯出備份再重置。');
+  if (!confirmed) return;
+
+  const doubleCheck = confirm('再次確認：真的要清空所有觀察名單資料？');
+  if (!doubleCheck) return;
+
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).clear();
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = reject;
+    });
+
+    await loadWatchlist();
+    alert('觀察名單已重置。');
+  } catch (e) {
+    console.error('重置失敗:', e);
+    alert('重置失敗：' + e.message);
+  }
+}
+
+function toggleWatchlist() {
+  const body = document.getElementById('watchlistBody');
+  const btn = document.getElementById('watchlistToggle');
+  body.classList.toggle('open');
+  btn.textContent = body.classList.contains('open') ? '收合 ▲' : '展開 ▼';
+}
+
+// ========== Turning Point Detection ==========
+function calcTurningPoints(priceData, ma50, ma150, ma200) {
+  const indicators = [];
+
+  if (priceData.length < 15) {
+    return indicators;
+  }
+
+  const latest = priceData[priceData.length - 1];
+  const prev5 = priceData[priceData.length - 6] || latest;
+
+  // === 均線排列狀態 ===
+  if (ma50 !== null && ma150 !== null && ma200 !== null) {
+    if (ma50 > ma150 && ma150 > ma200) {
+      indicators.push({
+        title: '均線多頭排列',
+        type: 'bullish',
+        value: `50MA ${ma50.toFixed(2)} > 150MA ${ma150.toFixed(2)} > 200MA ${ma200.toFixed(2)}`,
+        desc: '短中長期均線完美多頭排列，趨勢健康向上'
+      });
+    } else if (ma50 < ma150 && ma150 < ma200) {
+      indicators.push({
+        title: '均線空頭排列',
+        type: 'bearish',
+        value: `50MA ${ma50.toFixed(2)} < 150MA ${ma150.toFixed(2)} < 200MA ${ma200.toFixed(2)}`,
+        desc: '短中長期均線空頭排列，趨勢偏弱'
+      });
+    } else {
+      indicators.push({
+        title: '均線糾結',
+        type: 'caution',
+        value: `50MA ${ma50.toFixed(2)} | 150MA ${ma150.toFixed(2)} | 200MA ${ma200.toFixed(2)}`,
+        desc: '均線排列不明確，可能正在轉折中，需觀望'
+      });
+    }
+  }
+
+  // === MA交叉訊號 ===
+  if (ma50 !== null && ma150 !== null) {
+    const prev5MA50 = calcMA(priceData.slice(0, -5), 50);
+    const prev5MA150 = calcMA(priceData.slice(0, -5), 150);
+
+    if (prev5MA50 !== null && prev5MA150 !== null) {
+      const wasBullish = prev5MA50 > prev5MA150;
+      const isBullish = ma50 > ma150;
+
+      if (!wasBullish && isBullish) {
+        indicators.push({
+          title: '黃金交叉',
+          type: 'bullish',
+          value: `50MA ${ma50.toFixed(2)} 突破 150MA ${ma150.toFixed(2)}`,
+          desc: '50日均線近5日由下穿上150日均線，短期上升動能啟動'
+        });
+      } else if (wasBullish && !isBullish) {
+        indicators.push({
+          title: '死亡交叉警告',
+          type: 'bearish',
+          value: `50MA ${ma50.toFixed(2)} 跌破 150MA ${ma150.toFixed(2)}`,
+          desc: '50日均線近5日由上穿下150日均線，多頭排列被破壞'
+        });
+      }
+    }
+  }
+
+  // === 股價 vs 50MA ===
+  if (ma50 !== null) {
+    const distPct = ((latest.close - ma50) / ma50 * 100).toFixed(1);
+
+    if (latest.close < ma50) {
+      indicators.push({
+        title: '價格跌破50MA',
+        type: 'caution',
+        value: `${latest.close.toFixed(2)} < ${ma50.toFixed(2)}（偏離 ${distPct}%）`,
+        desc: '股價跌破50日均線，需留意趨勢轉弱訊號'
+      });
+    } else {
+      indicators.push({
+        title: '價格站穩50MA之上',
+        type: 'bullish',
+        value: `${latest.close.toFixed(2)} > ${ma50.toFixed(2)}（+${distPct}%）`,
+        desc: '股價位於50日均線之上，短期趨勢偏多'
+      });
+    }
+  }
+
+  // === 50MA斜率 ===
+  if (ma50 !== null && priceData.length >= 15) {
+    const ma50_10d = calcMA(priceData.slice(0, -10), 50);
+    if (ma50_10d !== null) {
+      const slope = ma50 - ma50_10d;
+      const slopePct = ((slope / ma50_10d) * 100).toFixed(2);
+      if (slope < 0) {
+        indicators.push({
+          title: '均線斜率轉弱',
+          type: 'caution',
+          value: `50MA 10日變化: ${slope.toFixed(2)}元（${slopePct}%）`,
+          desc: '50日均線近期走平或下行，上升趨勢可能減弱'
+        });
+      } else {
+        indicators.push({
+          title: '均線斜率向上',
+          type: 'bullish',
+          value: `50MA 10日變化: +${slope.toFixed(2)}元（+${slopePct}%）`,
+          desc: '50日均線持續上揚，上升趨勢穩定'
+        });
+      }
+    }
+  }
+
+  // === 股價 vs 200MA ===
+  if (ma200 !== null) {
+    if (latest.close < ma200) {
+      indicators.push({
+        title: '趨勢破位',
+        type: 'bearish',
+        value: `${latest.close.toFixed(2)} < 200MA ${ma200.toFixed(2)}`,
+        desc: '股價跌破200日均線，長期上升趨勢被破壞，應考慮出場'
+      });
+    } else {
+      const dist200 = ((latest.close - ma200) / ma200 * 100).toFixed(1);
+      indicators.push({
+        title: '長期趨勢完整',
+        type: 'bullish',
+        value: `${latest.close.toFixed(2)} > 200MA ${ma200.toFixed(2)}（+${dist200}%）`,
+        desc: '股價站穩200日均線之上，長期上升趨勢完好'
+      });
+    }
+  }
+
+  // === 52週位置 ===
+  const high52W = Math.max(...priceData.map(d => d.high));
+  const low52W = Math.min(...priceData.map(d => d.low));
+  const range52 = high52W - low52W;
+  if (range52 > 0) {
+    const positionPct = ((latest.close - low52W) / range52 * 100).toFixed(1);
+    const fromHighPct = ((high52W - latest.close) / high52W * 100).toFixed(1);
+    if (parseFloat(positionPct) >= 75) {
+      indicators.push({
+        title: '接近52週高點',
+        type: 'bullish',
+        value: `位於52週區間 ${positionPct}%（距高點 -${fromHighPct}%）`,
+        desc: '股價處於52週高檔區域，強勢股特徵'
+      });
+    } else if (parseFloat(positionPct) <= 25) {
+      indicators.push({
+        title: '接近52週低點',
+        type: 'bearish',
+        value: `位於52週區間 ${positionPct}%（距高點 -${fromHighPct}%）`,
+        desc: '股價處於52週低檔區域，趨勢偏弱'
+      });
+    } else {
+      indicators.push({
+        title: '52週區間中段',
+        type: 'caution',
+        value: `位於52週區間 ${positionPct}%（距高點 -${fromHighPct}%）`,
+        desc: '股價位於52週中間位置，方向待確認'
+      });
+    }
+  }
+
+  // === MACD ===
+  if (priceData.length >= 26) {
+    const macdData = calcMACD(priceData);
+    if (macdData) {
+      const { macd, signal, histogram } = macdData;
+      const prevMACD = priceData.length >= 27 ? calcMACD(priceData.slice(0, -1)) : null;
+
+      if (prevMACD) {
+        const wasBullish = prevMACD.macd > prevMACD.signal;
+        const isBullish = macd > signal;
+
+        if (!wasBullish && isBullish) {
+          indicators.push({
+            title: 'MACD金叉',
+            type: 'bullish',
+            value: `MACD ${macd.toFixed(4)} > Signal ${signal.toFixed(4)}`,
+            desc: 'MACD線由下穿上信號線，動能柱轉正，上升訊號'
+          });
+        } else if (wasBullish && !isBullish) {
+          indicators.push({
+            title: 'MACD死叉',
+            type: 'bearish',
+            value: `MACD ${macd.toFixed(4)} < Signal ${signal.toFixed(4)}`,
+            desc: 'MACD線由上穿下信號線，動能柱轉負，下行訊號'
+          });
+        } else if (isBullish) {
+          indicators.push({
+            title: 'MACD正向',
+            type: 'bullish',
+            value: `MACD ${macd.toFixed(4)} | Signal ${signal.toFixed(4)} | Hist ${histogram.toFixed(4)}`,
+            desc: 'MACD高於信號線，動能柱為正，上升動能充足'
+          });
+        } else {
+          indicators.push({
+            title: 'MACD負向',
+            type: 'bearish',
+            value: `MACD ${macd.toFixed(4)} | Signal ${signal.toFixed(4)} | Hist ${histogram.toFixed(4)}`,
+            desc: 'MACD低於信號線，動能柱為負，下行壓力中'
+          });
+        }
+      }
+    }
+  }
+
+  return indicators;
+}
+
+function calcMACD(priceData) {
+  const closes = priceData.map(d => d.close);
+  const ema12 = calcEMA(closes, 12);
+  const ema26 = calcEMA(closes, 26);
+
+  if (!ema12 || !ema26) return null;
+
+  const macd = ema12 - ema26;
+  const macdLine = [];
+  for (let i = 0; i < closes.length; i++) {
+    const e12 = calcEMA(closes.slice(0, i + 1), 12);
+    const e26 = calcEMA(closes.slice(0, i + 1), 26);
+    if (e12 && e26) {
+      macdLine.push(e12 - e26);
+    }
+  }
+
+  const signal = calcEMA(macdLine, 9);
+  const histogram = macd - (signal || 0);
+
+  return { macd, signal, histogram };
+}
+
+function calcEMA(data, period) {
+  if (data.length < period) return null;
+
+  let sma = data.slice(0, period).reduce((a, b) => a + b) / period;
+  const multiplier = 2 / (period + 1);
+
+  for (let i = period; i < data.length; i++) {
+    sma = data[i] * multiplier + sma * (1 - multiplier);
+  }
+
+  return sma;
+}
+
+function renderTurningPoints(indicators) {
+  const container = document.getElementById('turningPointGrid');
+  const section = document.getElementById('turningPoint');
+
+  if (!indicators || indicators.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+
+  container.innerHTML = indicators.map(ind => `
+    <div class="turning-point-item ${ind.type}">
+      <div class="turning-point-title">${ind.title}</div>
+      <div class="turning-point-value">${ind.value}</div>
+      <div class="turning-point-desc">
+        <span class="signal-badge ${ind.type}">
+          ${ind.type === 'bullish' ? '看多' : ind.type === 'bearish' ? '看空' : '注意'}
+        </span>
+        ${ind.desc}
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('stockCode').focus();
+</script>
+</body>
+</html>
