@@ -917,10 +917,12 @@
     <div class="plan-tabs">
       <button class="plan-tab active" onclick="switchPlan('conservative')">穩健型（停損 5%）</button>
       <button class="plan-tab" onclick="switchPlan('aggressive')">積極型（停損 8%）</button>
+      <button class="plan-tab" onclick="switchPlan('trending')">趨勢跟蹤型</button>
     </div>
 
     <div class="plan-content active" id="plan-conservative"></div>
     <div class="plan-content" id="plan-aggressive"></div>
+    <div class="plan-content" id="plan-trending"></div>
 
     <div class="trade-note" id="tradeNote"></div>
   </div>
@@ -2005,6 +2007,173 @@ function renderTradePlan(price, score, ma50, ma150, high52W, low52W, isStage2, c
   document.getElementById('plan-conservative').innerHTML = buildPlanHTML(5, 'conservative');
   document.getElementById('plan-aggressive').innerHTML = buildPlanHTML(8, 'aggressive');
 
+  // ========== Trending (趨勢跟蹤型) ==========
+  {
+    const base = cost;
+    const initStop = (base * 0.92).toFixed(2); // 初始停損 8%
+    const ma50Trail = ma50 ? ma50.toFixed(2) : 'N/A';
+    const ma150Trail = ma150 ? ma150.toFixed(2) : 'N/A';
+
+    // 計算 10 週均線（近似用 50MA）
+    // ATR 近似：用近 20 日的平均振幅
+    // 移動停利階梯
+    const trail1 = (base * 1.15).toFixed(2); // +15% 啟動移動停利
+    const trail2 = (base * 1.30).toFixed(2); // +30% 收緊停利
+    const trail3 = (base * 1.50).toFixed(2); // +50% 進入飆股模式
+    const trail4 = (base * 2.00).toFixed(2); // +100% 翻倍模式
+
+    function trendStatus(target) {
+      const t = parseFloat(target);
+      if (p >= t) return '<span style="color:#34d399;font-size:0.72rem;margin-left:4px">✓ 已達</span>';
+      const diff = ((t - p) / p * 100).toFixed(1);
+      return `<span style="color:#6b7785;font-size:0.72rem;margin-left:4px">差 ${diff}%</span>`;
+    }
+
+    // 判斷目前階段
+    let currentPhase, phaseColor, phaseDesc;
+    const gainPct = hasCost ? ((p - base) / base * 100) : 0;
+
+    if (gainPct >= 100) {
+      currentPhase = '翻倍飆股模式'; phaseColor = '#f0b90b';
+      phaseDesc = '恭喜翻倍！只用週收盤價判斷，跌破 10 週均線才出場。日內波動完全忽略。';
+    } else if (gainPct >= 50) {
+      currentPhase = '強勢飆股模式'; phaseColor = '#34d399';
+      phaseDesc = '漲幅超過 50%，改用週收盤價追蹤 10 週均線（≈50MA），僅賣出初始部位的 1/4。';
+    } else if (gainPct >= 30) {
+      currentPhase = '加速趨勢中'; phaseColor = '#38bdf8';
+      phaseDesc = '趨勢加速，停利上移至 50MA 或最高價回撤 15% 取高者。可賣出 1/4 鎖定利潤。';
+    } else if (gainPct >= 15) {
+      currentPhase = '移動停利啟動'; phaseColor = '#fbbf24';
+      phaseDesc = '已達 +15% 啟動門檻，停損上移至成本價（保本），開始用移動停利追蹤。';
+    } else {
+      currentPhase = '初始持有階段'; phaseColor = '#94a3b8';
+      phaseDesc = '漲幅未達 15%，維持固定停損（成本 -8%），耐心等待趨勢發動。';
+    }
+
+    let posHTML = '';
+    if (hasCost) {
+      const plColor = isProfit ? '#34d399' : '#f87171';
+      const plSign = isProfit ? '+' : '';
+      posHTML = `
+        <div class="trade-section" style="background:#0f1923;padding:16px;border-radius:10px;margin-bottom:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-size:0.75rem;color:#6b7785;">我的持倉成本</div>
+              <div style="font-size:1.4rem;font-weight:800;color:#e0e6ed;">${base.toFixed(2)}</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:0.75rem;color:#6b7785;">現價</div>
+              <div style="font-size:1.4rem;font-weight:800;color:#e0e6ed;">${p.toFixed(2)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.75rem;color:#6b7785;">損益</div>
+              <div style="font-size:1.4rem;font-weight:800;color:${plColor};">${plSign}${plAmount.toFixed(2)}</div>
+              <div style="font-size:0.85rem;color:${plColor};">${plSign}${plPct.toFixed(2)}%</div>
+            </div>
+          </div>
+          <div style="background:${phaseColor}22;border-left:3px solid ${phaseColor};padding:10px 14px;border-radius:6px;margin-top:10px;font-size:0.82rem;color:${phaseColor};">
+            目前階段：<strong>${currentPhase}</strong><br>${phaseDesc}
+          </div>
+        </div>
+      `;
+    }
+
+    const trendingHTML = `
+      <div class="trade-section">
+        <div class="trade-section-title" style="color:${signalColor}">
+          訊號強度：${signal}
+        </div>
+        <div style="font-size:0.8rem; color:#6b7785; margin-bottom:14px;">
+          趨勢跟蹤型適合強勢趨勢股，目標是抱住大波段。用均線追蹤取代固定停利點，犧牲部分利潤換取更大的上漲空間。
+        </div>
+      </div>
+
+      ${posHTML}
+
+      <div class="trade-section">
+        <div class="trade-section-title">初始停損 — 進場保護</div>
+        <div class="trade-row">
+          <div class="trade-badge stop">停損價</div>
+          <div class="trade-price" style="color:#f87171">${initStop}</div>
+          <div class="trade-desc">成本價 -8%，進場後的固定停損，以日收盤價為準</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge stop">啟動門檻</div>
+          <div class="trade-price" style="color:#fbbf24">${trail1} ${trendStatus(trail1)}</div>
+          <div class="trade-desc">漲幅達 +15% 後，停損上移至成本價（保本），啟動移動停利機制</div>
+        </div>
+      </div>
+
+      <div class="trade-section">
+        <div class="trade-section-title">移動停利階梯 — 隨漲幅自動收緊</div>
+        <div class="trade-row">
+          <div class="trade-badge trail">階段一</div>
+          <div class="trade-price" style="color:#fbbf24">+15% ~ +30% ${trendStatus(trail1)}</div>
+          <div class="trade-desc">停損移至成本價，用 50MA（${ma50Trail}）當移動停利線。週收盤跌破才出場，日內波動忽略。</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge trail">階段二</div>
+          <div class="trade-price" style="color:#38bdf8">+30% ~ +50% ${trendStatus(trail2)}</div>
+          <div class="trade-desc">可賣出 1/4 部位鎖利。剩餘部位停利線為 50MA 或最高價回撤 15%（取較高者）。</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge trail">階段三</div>
+          <div class="trade-price" style="color:#34d399">+50% ~ +100% ${trendStatus(trail3)}</div>
+          <div class="trade-desc">進入飆股模式。只看週 K 收盤價，跌破 10 週均線（≈50MA）才考慮出場。可再賣 1/4。</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge trail">階段四</div>
+          <div class="trade-price" style="color:#f0b90b">+100% 以上 ${trendStatus(trail4)}</div>
+          <div class="trade-desc">翻倍股！剩餘 1/2 部位全部用週收盤追蹤。只有連續兩週收盤低於 10 週均線才全部出清。</div>
+        </div>
+      </div>
+
+      <div class="trade-section">
+        <div class="trade-section-title">均線追蹤參考</div>
+        <div class="trade-row">
+          <div class="trade-badge trail">50MA</div>
+          <div class="trade-price" style="color:#fbbf24">${ma50Trail}</div>
+          <div class="trade-desc">≈ 10 週均線，趨勢跟蹤的核心停利參考線</div>
+        </div>
+        ${ma150 ? `<div class="trade-row">
+          <div class="trade-badge trail">150MA</div>
+          <div class="trade-price" style="color:#fbbf24">${ma150Trail}</div>
+          <div class="trade-desc">最後防線。跌破代表中期趨勢結束，無論如何必須離場</div>
+        </div>` : ''}
+      </div>
+
+      <div class="trade-section">
+        <div class="trade-section-title">出場異常訊號</div>
+        <div class="trade-row">
+          <div class="trade-badge warn">爆量長黑</div>
+          <div class="trade-price" style="color:#fb923c">立即減碼</div>
+          <div class="trade-desc">單日跌幅 >5% 且成交量為 20 日均量 3 倍以上 → 至少減碼 1/2，不等收盤</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge warn">跳空缺口</div>
+          <div class="trade-price" style="color:#fb923c">觀察 3 日</div>
+          <div class="trade-desc">向下跳空且 3 日內未回補缺口 → 視為趨勢轉弱訊號，開始減碼</div>
+        </div>
+        <div class="trade-row">
+          <div class="trade-badge warn">週線破線</div>
+          <div class="trade-price" style="color:#f87171">出清</div>
+          <div class="trade-desc">週 K 收盤價連續兩週低於 10 週均線 → 趨勢結束，出清所有剩餘部位</div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;padding:14px;border-radius:8px;font-size:0.78rem;color:#6b7785;line-height:1.6;margin-top:10px;">
+        <strong style="color:#94a3b8;">趨勢跟蹤型 vs 固定停利型：</strong><br>
+        固定停利（穩健/積極型）適合一般趨勢股，優點是確定性高、紀律明確。<br>
+        趨勢跟蹤型犧牲部分確定性，用「讓利潤奔跑」的方式追蹤大波段。<br>
+        <strong style="color:#fbbf24;">關鍵原則：用週收盤價判斷，不被日內波動洗出去。</strong><br>
+        適合：基本面持續成長、產業趨勢明確的強勢領漲股（如 AI、電動車龍頭）。<br>
+        不適合：題材炒作、無基本面支撐的短線飆股。
+      </div>
+    `;
+
+    document.getElementById('plan-trending').innerHTML = trendingHTML;
+  }
+
   // Trade note
   const baseRef = hasCost ? cost : price;
   const noteHTML = `
@@ -2025,13 +2194,9 @@ function switchPlan(type) {
   document.querySelectorAll('.plan-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.plan-content').forEach(c => c.classList.remove('active'));
 
-  if (type === 'conservative') {
-    document.querySelectorAll('.plan-tab')[0].classList.add('active');
-    document.getElementById('plan-conservative').classList.add('active');
-  } else {
-    document.querySelectorAll('.plan-tab')[1].classList.add('active');
-    document.getElementById('plan-aggressive').classList.add('active');
-  }
+  const tabIndex = type === 'conservative' ? 0 : type === 'aggressive' ? 1 : 2;
+  document.querySelectorAll('.plan-tab')[tabIndex].classList.add('active');
+  document.getElementById(`plan-${type}`).classList.add('active');
 }
 
 // ========== IndexedDB Watchlist Management ==========
